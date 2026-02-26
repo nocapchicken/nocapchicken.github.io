@@ -26,23 +26,23 @@ help:
 	@echo ""
 
 install:
-	pip install -r requirements.txt
+	pip3 install -r requirements.txt
 
 setup:
-	python setup.py
+	python3 setup.py
 
 data:
-	python scripts/make_dataset.py
+	python3 scripts/make_dataset.py
 
 features:
-	python scripts/build_features.py
+	python3 scripts/build_features.py
 
 train:
-	python scripts/model.py
+	python3 scripts/model.py
 
 run:
 	@printf "\n\033[1;36m  nocapchicken: http://localhost:5000\033[0m\n\n"
-	FLASK_ENV=development python main.py
+	FLASK_ENV=development python3 main.py
 
 run-prod:
 	@printf "\n\033[1;36m  nocapchicken: http://0.0.0.0:5000\033[0m\n\n"

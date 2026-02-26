@@ -1,0 +1,30 @@
+# Environment
+.env
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Data (raw and processed — too large for git; document acquisition in setup.py)
+data/raw/
+data/processed/
+data/outputs/
+
+# Models (large binaries — store externally or use git-lfs)
+models/*.pkl
+models/*.pt
+models/*.bin
+models/*.safetensors
+
+# Notebooks checkpoints
+notebooks/.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

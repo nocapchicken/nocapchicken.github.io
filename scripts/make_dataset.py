@@ -55,65 +55,90 @@ RESTAURANT_TYPE_CODES = {"1", "2", "3", "4", "14", "15"}  # restaurants + food s
 # NC Inspection Records
 # ---------------------------------------------------------------------------
 
-def collect_inspections(output_dir: Path, county_codes: list[int] = NC_COUNTY_CODES) -> pd.DataFrame:
+def collect_inspections(
+    output_dir: Path,
+    county_codes: list[int] = NC_COUNTY_CODES,
+    date_from: str = "01/01/2020",
+    date_to: str = "",
+    force: bool = False,
+) -> pd.DataFrame:
     """
     Scrape NC DHHS public inspection records for all specified counties.
 
-    Paginates through all pages for each county using ASP.NET PostBack.
-    Filters to restaurant/food establishment types only.
+    Uses a large page-size POST to fetch all records in a single request
+    per county rather than paginating. Skips scraping if the output file
+    already exists unless force=True.
 
     Args:
         output_dir: Directory to write inspections.csv
         county_codes: List of NC county integer codes to collect
+        date_from: Inspection date lower bound (MM/DD/YYYY). Default 2020-01-01.
+        date_to: Inspection date upper bound (MM/DD/YYYY). Empty = no upper bound.
+        force: Re-scrape even if inspections.csv already exists.
 
     Returns:
         DataFrame of raw inspection records
     """
+    out_path = output_dir / "inspections.csv"
+
+    if out_path.exists() and not force:
+        logger.info("inspections.csv already exists (%d rows) — skipping scrape. Use force=True to re-collect.", sum(1 for _ in open(out_path)) - 1)
+        return pd.read_csv(out_path)
+
     records = []
 
     for county_code in tqdm(county_codes, desc="Counties"):
         try:
-            rows = _scrape_county_all_pages(county_code)
+            rows = _scrape_county_bulk(county_code, date_from=date_from, date_to=date_to)
             records.extend(rows)
-            time.sleep(0.75)  # polite crawl delay between counties
+            time.sleep(0.5)
         except Exception as exc:
             logger.warning("County %d failed: %s", county_code, exc)
 
     df = pd.DataFrame(records)
-    out_path = output_dir / "inspections.csv"
     df.to_csv(out_path, index=False)
     logger.info("Wrote %d inspection records to %s", len(df), out_path)
     return df
 
 
-def _scrape_county_all_pages(county_code: int) -> list[dict]:
-    """Scrape all pages for one county via ASP.NET PostBack pagination."""
+def _scrape_county_bulk(county_code: int, date_from: str = "", date_to: str = "") -> list[dict]:
+    """
+    Fetch all inspection records for one county in a single POST request
+    by setting _PageSize to a large number.
+
+    Args:
+        county_code: NC DHHS county integer code
+        date_from: Optional date filter lower bound (MM/DD/YYYY)
+        date_to: Optional date filter upper bound (MM/DD/YYYY)
+    """
     session = requests.Session()
     session.headers.update(HEADERS)
 
     url = f"{BASE_URL}?ESTTST_CTY={county_code}"
+
+    # Step 1: GET the initial page to harvest ASP.NET hidden fields
     resp = session.get(url, timeout=15)
     resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "lxml")
 
-    all_rows = []
-    page = 1
+    # Step 2: POST with large page size + optional date filters
+    payload = _build_postback_payload(soup, event_target="")
+    payload.update({
+        "ctl00$PageContent$Pagination$_PageSize": "5000",
+        "ctl00$PageContent$INSPECTION_DATEFromFilter": date_from,
+        "ctl00$PageContent$INSPECTION_DATEToFilter": date_to,
+        # Simulate clicking the Refresh button (image button submits as name.x / name.y)
+        "ctl00$PageContent$RefreshButton1.x": "1",
+        "ctl00$PageContent$RefreshButton1.y": "1",
+    })
 
-    while True:
-        soup = BeautifulSoup(resp.text, "lxml")
-        rows = _parse_data_rows(soup, county_code)
-        all_rows.extend(rows)
+    resp = session.post(url, data=payload, timeout=30)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "lxml")
 
-        # Check if a "Next" page link exists
-        next_payload = _get_next_page_payload(soup)
-        if next_payload is None:
-            break
-
-        page += 1
-        resp = session.post(url, data=next_payload, timeout=15)
-        resp.raise_for_status()
-        time.sleep(0.3)
-
-    logger.debug("County %d: %d records across %d page(s)", county_code, len(all_rows), page)
+    rows = _parse_data_rows(soup, county_code)
+    logger.debug("County %d: %d records", county_code, len(rows))
+    return rows
     return all_rows
 
 
@@ -232,26 +257,7 @@ def _split_address(address_full: str) -> tuple[str, str, str]:
     return street_city, "", zipcode
 
 
-def _get_next_page_payload(soup: BeautifulSoup) -> dict | None:
-    """
-    Build the POST payload to navigate to the next page.
 
-    ASP.NET WebForms pagination uses __doPostBack() with a target
-    control ID. Returns None if no next-page link exists.
-    """
-    # Find a pager link whose text is ">" or contains "Next"
-    for a in soup.find_all("a", href=True):
-        href = a["href"]
-        text = a.get_text(strip=True)
-        if text in (">", "Next", "»") and "__doPostBack" in href:
-            # Extract the event target from javascript:__doPostBack('target','')
-            m = re.search(r"__doPostBack\('([^']+)'", href)
-            if not m:
-                continue
-            event_target = m.group(1)
-            return _build_postback_payload(soup, event_target)
-
-    return None
 
 
 def _build_postback_payload(soup: BeautifulSoup, event_target: str) -> dict:
@@ -276,6 +282,7 @@ def collect_yelp_reviews(
     inspections_path: Path,
     output_dir: Path,
     max_per_business: int = 3,
+    force: bool = False,
 ) -> pd.DataFrame:
     """
     Match inspection records to Yelp businesses and fetch review data
@@ -286,10 +293,16 @@ def collect_yelp_reviews(
         inspections_path: Path to inspections.csv
         output_dir: Directory to write yelp_reviews.csv
         max_per_business: Max reviews to store per business
+        force: Re-fetch even if yelp_reviews.csv already exists
 
     Returns:
         DataFrame with Yelp business metadata and reviews
     """
+    out_path = output_dir / "yelp_reviews.csv"
+    if out_path.exists() and not force:
+        logger.info("yelp_reviews.csv already exists — skipping. Use force=True to re-fetch.")
+        return pd.read_csv(out_path)
+
     inspections = pd.read_csv(inspections_path)
     headers = {
         "x-rapidapi-key": api_key,
@@ -360,6 +373,7 @@ def collect_google_reviews(
     api_key: str,
     inspections_path: Path,
     output_dir: Path,
+    force: bool = False,
 ) -> pd.DataFrame:
     """
     Match inspection records to Google Places and fetch review data.
@@ -368,10 +382,16 @@ def collect_google_reviews(
         api_key: Google Places API key
         inspections_path: Path to inspections.csv
         output_dir: Directory to write google_reviews.csv
+        force: Re-fetch even if google_reviews.csv already exists
 
     Returns:
         DataFrame with Google Places metadata and reviews
     """
+    out_path = output_dir / "google_reviews.csv"
+    if out_path.exists() and not force:
+        logger.info("google_reviews.csv already exists — skipping. Use force=True to re-fetch.")
+        return pd.read_csv(out_path)
+
     import googlemaps
 
     gmaps = googlemaps.Client(key=api_key)

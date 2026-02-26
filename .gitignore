@@ -7,16 +7,15 @@ __pycache__/
 venv/
 env/
 
-# Data (raw and processed — too large for git; document acquisition in setup.py)
-data/raw/
-data/processed/
+# Data — review CSVs require API keys and can be regenerated; exclude them
+# Inspection records and processed features ARE committed (see data/raw/ and data/processed/)
+data/raw/yelp_reviews.csv
+data/raw/google_reviews.csv
 data/outputs/
 
-# Models (large binaries — store externally or use git-lfs)
-models/*.pkl
-models/*.pt
-models/*.bin
-models/*.safetensors
+# Models — serialized sklearn/joblib artifacts are committed (small, required for app)
+# DistilBERT checkpoint is tracked via Git LFS (see .gitattributes)
+models/distilbert/
 
 # Notebooks checkpoints
 notebooks/.ipynb_checkpoints/

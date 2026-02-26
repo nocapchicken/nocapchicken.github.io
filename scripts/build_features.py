@@ -27,14 +27,50 @@ PROCESSED_DIR = ROOT / "data" / "processed"
 MATCH_THRESHOLD = 70
 
 
+def merge_inspection_years(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
+    """
+    Merge all per-year inspection files into a single inspections.csv.
+
+    Reads every inspections_{year}.csv in raw_dir, deduplicates on
+    (state_id, inspection_date), and writes inspections.csv.
+
+    Returns:
+        Merged DataFrame
+    """
+    year_files = sorted(raw_dir.glob("inspections_*.csv"))
+    if not year_files:
+        raise FileNotFoundError(
+            f"No inspections_{{year}}.csv files found in {raw_dir}. "
+            "Run python3 setup.py first."
+        )
+
+    df = pd.concat([pd.read_csv(f) for f in year_files], ignore_index=True)
+    df = df.drop_duplicates(subset=["state_id", "inspection_date"])
+    df = df.sort_values(["inspection_date", "establishment_name"]).reset_index(drop=True)
+
+    out_path = raw_dir / "inspections.csv"
+    df.to_csv(out_path, index=False)
+    logger.info(
+        "Merged %d year file(s) → inspections.csv (%d rows)",
+        len(year_files), len(df),
+    )
+    return df
+
+
 def build_features() -> pd.DataFrame:
     """
     Full feature engineering pipeline.
+
+    Merges per-year inspection files first, then joins review data
+    and engineers features.
 
     Returns:
         DataFrame with one row per matched establishment, ready for modeling.
     """
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Merge per-year files → data/raw/inspections.csv before loading
+    merge_inspection_years(RAW_DIR)
 
     inspections = _load_inspections()
     yelp = _load_reviews("yelp_reviews.csv", prefix="yelp")

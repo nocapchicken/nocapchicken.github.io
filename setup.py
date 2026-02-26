@@ -1,16 +1,18 @@
 """
 Setup script: acquire raw data from NC inspection records, Yelp, and Google Places.
 
-Each step is skipped if its output file already exists unless --force is passed.
+Inspection data is stored one file per year (inspections_{year}.csv).
+Years already on disk are skipped; the current year is always re-fetched.
+Review CSVs are skipped if they already exist unless --force is passed.
 
 Usage:
-    python3 setup.py                        # skip steps whose output already exists
-    python3 setup.py --force                # re-run all steps
-    python3 setup.py --from 01/01/2022      # inspections from 2022 onward
-    python3 setup.py --from 01/01/2022 --to 12/31/2024
+    python3 setup.py                        # collect 2020–now, skip existing years
+    python3 setup.py --years 2023 2024      # only collect specific years
+    python3 setup.py --force                # re-run all steps including existing years
 """
 
 import argparse
+import datetime
 import os
 import sys
 from pathlib import Path
@@ -24,12 +26,11 @@ from scripts.make_dataset import collect_inspections, collect_yelp_reviews, coll
 
 
 def parse_args() -> argparse.Namespace:
+    current_year = datetime.date.today().year
     p = argparse.ArgumentParser(description="nocapchicken data acquisition pipeline")
     p.add_argument("--force", action="store_true", help="Re-run all steps even if output exists")
-    p.add_argument("--from", dest="date_from", default="01/01/2020", metavar="MM/DD/YYYY",
-                   help="Inspection date lower bound (default: 01/01/2020)")
-    p.add_argument("--to", dest="date_to", default="", metavar="MM/DD/YYYY",
-                   help="Inspection date upper bound (default: no limit)")
+    p.add_argument("--years", nargs="+", type=int, metavar="YYYY",
+                   help=f"Years to collect (default: 2020–{current_year})")
     return p.parse_args()
 
 
@@ -48,13 +49,9 @@ def main() -> None:
     raw_dir = ROOT / "data" / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"Step 1/3: Collecting NC inspection records (from={args.date_from or 'any'} to={args.date_to or 'any'})...")
-    collect_inspections(
-        output_dir=raw_dir,
-        date_from=args.date_from,
-        date_to=args.date_to,
-        force=args.force,
-    )
+    years_label = ", ".join(str(y) for y in (args.years or ["2020–now"]))
+    print(f"Step 1/3: Collecting NC inspection records ({years_label})...")
+    collect_inspections(output_dir=raw_dir, years=args.years, force=args.force)
 
     print("Step 2/3: Fetching Yelp review data...")
     collect_yelp_reviews(

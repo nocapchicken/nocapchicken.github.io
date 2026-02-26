@@ -58,47 +58,64 @@ RESTAURANT_TYPE_CODES = {"1", "2", "3", "4", "14", "15"}  # restaurants + food s
 def collect_inspections(
     output_dir: Path,
     county_codes: list[int] = NC_COUNTY_CODES,
-    date_from: str = "01/01/2020",
-    date_to: str = "",
+    years: list[int] | None = None,
     force: bool = False,
 ) -> pd.DataFrame:
     """
-    Scrape NC DHHS public inspection records for all specified counties.
+    Scrape NC DHHS public inspection records, one file per year.
 
-    Uses a large page-size POST to fetch all records in a single request
-    per county rather than paginating. Skips scraping if the output file
-    already exists unless force=True.
+    Each year is saved as inspections_{year}.csv. Years whose file already
+    exists are skipped unless force=True. The current year is always
+    re-fetched (data is still accumulating).
+
+    After collection, all year files are merged into inspections.csv.
 
     Args:
-        output_dir: Directory to write inspections.csv
+        output_dir: Directory to write per-year files and inspections.csv
         county_codes: List of NC county integer codes to collect
-        date_from: Inspection date lower bound (MM/DD/YYYY). Default 2020-01-01.
-        date_to: Inspection date upper bound (MM/DD/YYYY). Empty = no upper bound.
-        force: Re-scrape even if inspections.csv already exists.
+        years: Years to collect. Defaults to 2020 through current year.
+        force: Re-scrape all years, including ones already on disk.
 
     Returns:
-        DataFrame of raw inspection records
+        Merged DataFrame of all collected inspection records
     """
-    out_path = output_dir / "inspections.csv"
+    import datetime
+    current_year = datetime.date.today().year
 
-    if out_path.exists() and not force:
-        logger.info("inspections.csv already exists (%d rows) — skipping scrape. Use force=True to re-collect.", sum(1 for _ in open(out_path)) - 1)
-        return pd.read_csv(out_path)
+    if years is None:
+        years = list(range(2020, current_year + 1))
 
-    records = []
+    for year in years:
+        year_path = output_dir / f"inspections_{year}.csv"
+        # Always re-fetch the current year (still accumulating)
+        is_current = year == current_year
+        if year_path.exists() and not force and not is_current:
+            logger.info("inspections_%d.csv exists — skipping.", year)
+            continue
 
-    for county_code in tqdm(county_codes, desc="Counties"):
-        try:
-            rows = _scrape_county_bulk(county_code, date_from=date_from, date_to=date_to)
-            records.extend(rows)
-            time.sleep(0.5)
-        except Exception as exc:
-            logger.warning("County %d failed: %s", county_code, exc)
+        logger.info("Fetching %d inspection records...", year)
+        records = []
+        date_from = f"01/01/{year}"
+        date_to = f"12/31/{year}"
 
-    df = pd.DataFrame(records)
-    df.to_csv(out_path, index=False)
-    logger.info("Wrote %d inspection records to %s", len(df), out_path)
-    return df
+        for county_code in tqdm(county_codes, desc=f"{year}"):
+            try:
+                rows = _scrape_county_bulk(county_code, date_from=date_from, date_to=date_to)
+                records.extend(rows)
+                time.sleep(0.5)
+            except Exception as exc:
+                logger.warning("County %d / %d failed: %s", county_code, year, exc)
+
+        df_year = pd.DataFrame(records)
+        df_year.to_csv(year_path, index=False)
+        logger.info("  → %d records written to %s", len(df_year), year_path)
+
+    logger.info("Collection done. Run build_features.py to merge year files.")
+    # Return whatever year files exist on disk so callers have something useful
+    year_files = sorted(output_dir.glob("inspections_*.csv"))
+    if not year_files:
+        return pd.DataFrame()
+    return pd.concat([pd.read_csv(f) for f in year_files], ignore_index=True)
 
 
 def _scrape_county_bulk(county_code: int, date_from: str = "", date_to: str = "") -> list[dict]:

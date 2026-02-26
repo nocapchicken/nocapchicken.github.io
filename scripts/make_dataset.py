@@ -298,7 +298,7 @@ def collect_yelp_reviews(
     results = []
 
     for _, row in tqdm(inspections.iterrows(), total=len(inspections), desc="Yelp"):
-        business = _yelp_search(row["establishment_name"], row["address"], row["city"], headers)
+        business = _yelp_search(row["establishment_name"], row["street_address"], row["city"], headers)
         if business is None:
             continue
 
@@ -379,7 +379,7 @@ def collect_google_reviews(
     results = []
 
     for _, row in tqdm(inspections.iterrows(), total=len(inspections), desc="Google"):
-        query = f"{row['establishment_name']} {row['address']} {row['city']} NC"
+        query = f"{row['establishment_name']} {row['street_address']} {row['city']} NC"
         try:
             place = _google_search(gmaps, query)
             if place is None:

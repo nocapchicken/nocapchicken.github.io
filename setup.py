@@ -23,7 +23,7 @@ def main() -> None:
     """Orchestrate full data acquisition pipeline."""
     load_dotenv()
 
-    yelp_key = os.getenv("YELP_API_KEY")
+    yelp_key = os.getenv("RAPIDAPI_KEY")
     google_key = os.getenv("GOOGLE_PLACES_API_KEY")
 
     if not yelp_key or not google_key:

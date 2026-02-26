@@ -99,19 +99,23 @@ def collect_yelp_reviews(
     max_per_business: int = 3,
 ) -> pd.DataFrame:
     """
-    Match inspection records to Yelp businesses and fetch review data.
+    Match inspection records to Yelp businesses and fetch review data
+    via the RapidAPI Yelp Business API proxy.
 
     Args:
-        api_key: Yelp Fusion API key
+        api_key: RapidAPI key (RAPIDAPI_KEY in .env)
         inspections_path: Path to inspections.csv
         output_dir: Directory to write yelp_reviews.csv
-        max_per_business: Max reviews per business (Yelp free tier cap)
+        max_per_business: Max reviews to store per business
 
     Returns:
         DataFrame with Yelp business metadata and reviews
     """
     inspections = pd.read_csv(inspections_path)
-    headers = {"Authorization": f"Bearer {api_key}"}
+    headers = {
+        "x-rapidapi-key": api_key,
+        "x-rapidapi-host": "yelp-business-api.p.rapidapi.com",
+    }
     results = []
 
     for _, row in tqdm(inspections.iterrows(), total=len(inspections), desc="Yelp"):
@@ -141,10 +145,10 @@ def collect_yelp_reviews(
 
 
 def _yelp_search(name: str, address: str, city: str, headers: dict) -> dict | None:
-    """Search Yelp for a single business by name and location."""
-    params = {"term": name, "location": f"{address}, {city}, NC", "limit": 1}
+    """Search Yelp for a single business by name and location (RapidAPI)."""
+    params = {"term": name, "location": f"{address}, {city}, NC", "limit": "1"}
     resp = requests.get(
-        "https://api.yelp.com/v3/businesses/search",
+        "https://yelp-business-api.p.rapidapi.com/search",
         headers=headers,
         params=params,
         timeout=10,
@@ -156,16 +160,17 @@ def _yelp_search(name: str, address: str, city: str, headers: dict) -> dict | No
 
 
 def _yelp_reviews(business_id: str, headers: dict, limit: int = 3) -> list[dict]:
-    """Fetch reviews for a Yelp business."""
+    """Fetch reviews for a Yelp business (RapidAPI)."""
     resp = requests.get(
-        f"https://api.yelp.com/v3/businesses/{business_id}/reviews",
+        "https://yelp-business-api.p.rapidapi.com/reviews",
         headers=headers,
-        params={"limit": limit},
+        params={"business_id": business_id},
         timeout=10,
     )
     if resp.status_code != 200:
         return []
-    return resp.json().get("reviews", [])
+    reviews = resp.json().get("reviews", [])
+    return reviews[:limit]
 
 
 # ---------------------------------------------------------------------------

@@ -68,18 +68,22 @@ def _load_explainer():
 
 
 def _fetch_yelp(name: str, city: str) -> dict:
-    """Fetch Yelp business metadata and up to 3 reviews."""
-    api_key = os.getenv("YELP_API_KEY", "")
+    """Fetch Yelp business metadata and up to 3 reviews via RapidAPI."""
+    api_key = os.getenv("RAPIDAPI_KEY", "")
     if not api_key:
         return {}
 
-    headers = {"Authorization": f"Bearer {api_key}"}
-    params = {"term": name, "location": f"{city}, NC", "limit": 1}
+    headers = {
+        "x-rapidapi-key": api_key,
+        "x-rapidapi-host": "yelp-business-api.p.rapidapi.com",
+    }
 
     try:
         search = requests.get(
-            "https://api.yelp.com/v3/businesses/search",
-            headers=headers, params=params, timeout=8
+            "https://yelp-business-api.p.rapidapi.com/search",
+            headers=headers,
+            params={"term": name, "location": f"{city}, NC", "limit": "1"},
+            timeout=8,
         )
         businesses = search.json().get("businesses", [])
         if not businesses:
@@ -91,10 +95,12 @@ def _fetch_yelp(name: str, city: str) -> dict:
             return {}
 
         rev_resp = requests.get(
-            f"https://api.yelp.com/v3/businesses/{biz['id']}/reviews",
-            headers=headers, params={"limit": 3}, timeout=8
+            "https://yelp-business-api.p.rapidapi.com/reviews",
+            headers=headers,
+            params={"business_id": biz["id"]},
+            timeout=8,
         )
-        reviews = [r["text"] for r in rev_resp.json().get("reviews", [])]
+        reviews = [r["text"] for r in rev_resp.json().get("reviews", [])[:3]]
 
         return {
             "rating": biz.get("rating"),

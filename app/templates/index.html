@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nocapchicken — NC Food Safety Reality Check</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
+</head>
+<body>
+
+  <!-- ── Header ───────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="container">
+      <div class="logo">
+        <span class="logo-icon">🍗</span>
+        <span class="logo-text">nocapchicken</span>
+      </div>
+      <p class="tagline">Do reviews actually reflect food safety?</p>
+    </div>
+  </header>
+
+  <!-- ── Hero / Search ────────────────────────────────────────── -->
+  <main class="main">
+    <div class="container">
+
+      <section class="hero">
+        <h1 class="hero-title">
+          The real score<br />behind the stars
+        </h1>
+        <p class="hero-sub">
+          We match NC health inspection records with Yelp &amp; Google ratings
+          to surface restaurants where public perception diverges from ground-truth safety.
+        </p>
+      </section>
+
+      <section class="search-section">
+        <form class="search-form" id="searchForm" autocomplete="off">
+          <div class="search-row">
+            <div class="field-wrap">
+              <label for="restaurantName">Restaurant name</label>
+              <input
+                id="restaurantName"
+                type="text"
+                placeholder="e.g. Poole's Diner"
+                required
+              />
+            </div>
+            <div class="field-wrap field-wrap--city">
+              <label for="city">City (NC)</label>
+              <input
+                id="city"
+                type="text"
+                placeholder="e.g. Raleigh"
+                required
+              />
+            </div>
+            <button class="btn-search" type="submit">
+              <span class="btn-text">Check it</span>
+              <span class="btn-spinner" aria-hidden="true"></span>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ── Result card (hidden until query) ─────────────────── -->
+      <section class="result-section" id="resultSection" hidden>
+
+        <!-- Error state -->
+        <div class="result-error" id="resultError" hidden>
+          <p id="errorMessage"></p>
+        </div>
+
+        <!-- Success state -->
+        <div class="result-card" id="resultCard" hidden>
+
+          <!-- Grade banner -->
+          <div class="grade-banner" id="gradeBanner">
+            <div class="grade-left">
+              <div class="grade-pill" id="gradePill"></div>
+              <div class="grade-meta">
+                <span class="grade-name" id="gradeName"></span>
+                <span class="grade-location" id="gradeLocation"></span>
+              </div>
+            </div>
+            <div class="grade-confidence">
+              <span class="confidence-label">Model confidence</span>
+              <span class="confidence-value" id="confidenceValue"></span>
+            </div>
+          </div>
+
+          <!-- Divergence warning -->
+          <div class="divergence-alert" id="divergenceAlert" hidden>
+            <span class="alert-icon">⚠️</span>
+            <div>
+              <strong>Reality gap detected.</strong>
+              High review ratings mask a predicted poor inspection grade.
+              This restaurant may look better online than it is in practice.
+            </div>
+          </div>
+
+          <!-- Platform ratings -->
+          <div class="platforms-row">
+            <div class="platform-card" id="yelpCard">
+              <div class="platform-logo yelp-logo">Yelp</div>
+              <div class="platform-stars" id="yelpStars"></div>
+              <div class="platform-count" id="yelpCount"></div>
+            </div>
+            <div class="platform-divider">vs.</div>
+            <div class="platform-card" id="googleCard">
+              <div class="platform-logo google-logo">Google</div>
+              <div class="platform-stars" id="googleStars"></div>
+              <div class="platform-count" id="googleCount"></div>
+            </div>
+            <div class="platform-card delta-card" id="deltaCard">
+              <div class="platform-logo">Platform delta</div>
+              <div class="delta-value" id="deltaValue"></div>
+              <div class="delta-label">star difference</div>
+            </div>
+          </div>
+
+          <!-- SHAP explanation -->
+          <div class="shap-section" id="shapSection">
+            <h3 class="section-title">What's driving this prediction</h3>
+            <ul class="shap-list" id="shapList"></ul>
+          </div>
+
+          <!-- Sample reviews -->
+          <div class="reviews-section" id="reviewsSection">
+            <h3 class="section-title">What people are saying</h3>
+            <ul class="reviews-list" id="reviewsList"></ul>
+          </div>
+
+        </div><!-- /result-card -->
+      </section><!-- /result-section -->
+
+      <!-- ── How it works ──────────────────────────────────────── -->
+      <section class="how-section">
+        <h2 class="section-title">How it works</h2>
+        <div class="steps-grid">
+          <div class="step">
+            <div class="step-num">01</div>
+            <div class="step-body">
+              <h4>NC health records</h4>
+              <p>We collected inspection scores and violation data for every licensed food establishment in North Carolina.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">02</div>
+            <div class="step-body">
+              <h4>Dual-platform reviews</h4>
+              <p>Each establishment is matched to its Yelp and Google listings using fuzzy name + address linking.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">03</div>
+            <div class="step-body">
+              <h4>ML prediction</h4>
+              <p>A Random Forest trained on the merged dataset predicts the likely inspection grade — with SHAP-backed explanations.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /container -->
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Data: <a href="https://public.cdpehs.com/NCENVPBL/INSPECTION_VIOLATION" target="_blank" rel="noopener">NC DHHS</a>, Yelp Fusion API, Google Places API.</p>
+      <p>Built for educational purposes. Not a substitute for official health inspection records.</p>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -85,7 +85,7 @@ def collect_inspections(
 
     for year in years:
         year_path = output_dir / f"inspections_{year}.csv"
-        if year_path.exists() and year_path.stat().st_size > 0 and not force:
+        if _csv_has_rows(year_path) and not force:
             is_current = year == datetime.date.today().year
             if is_current:
                 last_modified = datetime.date.fromtimestamp(year_path.stat().st_mtime)
@@ -234,6 +234,15 @@ def _parse_data_rows(soup: BeautifulSoup, county_code: int) -> list[dict]:
     return rows
 
 
+def _csv_has_rows(path: Path) -> bool:
+    """Return True only if the file exists and contains at least a header + one data row."""
+    if not path.exists():
+        return False
+    with open(path) as f:
+        lines = [l for l in f if l.strip()]
+    return len(lines) >= 2
+
+
 def _parse_violation_href(href: str) -> tuple[str, str]:
     """Extract ESTABLISHMENT and INSPECTION ids from a violation detail URL."""
     est = re.search(r"ESTABLISHMENT=(\d+)", href)
@@ -320,7 +329,7 @@ def collect_yelp_reviews(
         DataFrame with Yelp business metadata and reviews
     """
     out_path = output_dir / "yelp_reviews.csv"
-    if out_path.exists() and out_path.stat().st_size > 0 and not force:
+    if _csv_has_rows(out_path) and not force:
         logger.info("yelp_reviews.csv already exists — skipping. Use force=True to re-fetch.")
         return pd.read_csv(out_path)
 
@@ -409,7 +418,7 @@ def collect_google_reviews(
         DataFrame with Google Places metadata and reviews
     """
     out_path = output_dir / "google_reviews.csv"
-    if out_path.exists() and out_path.stat().st_size > 0 and not force:
+    if _csv_has_rows(out_path) and not force:
         logger.info("google_reviews.csv already exists — skipping. Use force=True to re-fetch.")
         return pd.read_csv(out_path)
 

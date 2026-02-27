@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const API_BASE = 'https://nocapchicken.onrender.com';
+  const API_BASE = 'https://nocapchicken-github-io.onrender.com';
 
   const form        = document.getElementById('searchForm');
   const btnSearch   = form.querySelector('.btn-search');

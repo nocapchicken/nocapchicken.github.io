@@ -1,3 +1,4 @@
+# AI-assisted (Claude Code, claude.ai) — https://claude.ai
 """Routes for the nocapchicken Flask app."""
 
 from __future__ import annotations
@@ -21,12 +22,7 @@ def index():
 
 @bp.post("/api/predict")
 def api_predict():
-    """
-    Run model inference for a restaurant lookup.
-
-    Request JSON: {"name": str, "city": str}
-    Response JSON: PredictionResult as dict
-    """
+    """Run model inference. Expects JSON {"name": str, "city": str}."""
     body = request.get_json(silent=True) or {}
     name = (body.get("name") or "").strip()
     city = (body.get("city") or "").strip()

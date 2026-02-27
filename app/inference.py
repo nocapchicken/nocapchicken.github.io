@@ -1,3 +1,4 @@
+# AI-assisted (Claude Code, claude.ai) — https://claude.ai
 """
 inference.py — Model loading and prediction for the nocapchicken web app.
 
@@ -7,9 +8,8 @@ No training happens here.
 
 from __future__ import annotations
 
-import os
 import logging
-import time
+import os
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
@@ -193,10 +193,10 @@ def _compute_shap(X: np.ndarray, col_names: list[str]) -> list[dict]:
             vals = shap_vals[0]
 
         impacts = [
-            {"feature": col_names[i], "impact": float(vals[i])}
-            for i in range(len(col_names))
+            {"feature": name, "impact": float(val)}
+            for name, val in zip(col_names, vals)
         ]
-        impacts.sort(key=lambda x: abs(x["impact"]), reverse=True)
+        impacts.sort(key=lambda item: abs(item["impact"]), reverse=True)
         return impacts[:3]
     except Exception as exc:
         logger.warning("SHAP computation failed: %s", exc)
@@ -244,10 +244,12 @@ def predict(restaurant_name: str, city: str) -> PredictionResult:
 
     shap_features = _compute_shap(X, col_names)
 
-    # Divergence flag: high platform ratings but low predicted grade
-    avg_platform_rating = np.mean([
-        r for r in [yelp.get("rating"), google.get("rating")] if r is not None
-    ]) if (yelp.get("rating") or google.get("rating")) else None
+    yelp_rating = yelp.get("rating")
+    google_rating = google.get("rating")
+
+    # Divergence flag: high platform ratings but model predicts C
+    platform_ratings = [r for r in (yelp_rating, google_rating) if r is not None]
+    avg_platform_rating = np.mean(platform_ratings) if platform_ratings else None
     divergence_warning = (
         predicted_grade == "C"
         and avg_platform_rating is not None
@@ -256,8 +258,6 @@ def predict(restaurant_name: str, city: str) -> PredictionResult:
 
     sample_reviews = (yelp.get("reviews", []) + google.get("reviews", []))[:3]
 
-    yelp_rating = yelp.get("rating")
-    google_rating = google.get("rating")
     rating_delta = (
         round(abs(yelp_rating - google_rating), 2)
         if yelp_rating is not None and google_rating is not None

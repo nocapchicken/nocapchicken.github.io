@@ -1,3 +1,4 @@
+# AI-assisted (Claude Code, claude.ai) — https://claude.ai
 """
 model.py — Train and evaluate all three required modeling approaches.
 
@@ -13,16 +14,16 @@ Usage:
 from __future__ import annotations
 
 import logging
-import joblib
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 import shap
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import GridSearchCV, train_test_split
 
 logger = logging.getLogger(__name__)
 
@@ -70,11 +71,8 @@ def evaluate(model, X_test: pd.DataFrame, y_test: pd.Series, name: str) -> dict:
 # 1. Naive baseline
 # ---------------------------------------------------------------------------
 
-def train_naive_baseline(X_train, y_train) -> DummyClassifier:
-    """
-    Majority class classifier — always predicts the most frequent grade.
-    Serves as the performance floor all other models must beat.
-    """
+def train_naive_baseline(X_train: pd.DataFrame, y_train: pd.Series) -> DummyClassifier:
+    """Majority class baseline -- performance floor all other models must beat."""
     model = DummyClassifier(strategy="most_frequent", random_state=RANDOM_STATE)
     model.fit(X_train, y_train)
     return model
@@ -84,11 +82,8 @@ def train_naive_baseline(X_train, y_train) -> DummyClassifier:
 # 2. Classical ML — Random Forest
 # ---------------------------------------------------------------------------
 
-def train_random_forest(X_train, y_train) -> RandomForestClassifier:
-    """
-    Random Forest with grid-searched hyperparameters.
-    SHAP values are computed separately via explain_random_forest().
-    """
+def train_random_forest(X_train: pd.DataFrame, y_train: pd.Series) -> RandomForestClassifier:
+    """Random Forest with grid-searched hyperparameters."""
     param_grid = {
         "n_estimators": [100, 200],
         "max_depth": [None, 10, 20],
@@ -133,21 +128,7 @@ def train_distilbert(
     epochs: int = 3,
     batch_size: int = 16,
 ):
-    """
-    Fine-tune DistilBERT on combined review text for grade classification.
-
-    Args:
-        texts_train: List of review strings for training
-        y_train: Encoded grade labels for training
-        texts_test: List of review strings for evaluation
-        y_test: Encoded grade labels for evaluation
-        num_labels: Number of output classes (A/B/C = 3)
-        epochs: Number of training epochs
-        batch_size: Training batch size
-
-    Returns:
-        Trained HuggingFace Trainer object
-    """
+    """Fine-tune DistilBERT on combined review text for grade classification."""
     from transformers import (
         DistilBertTokenizerFast,
         DistilBertForSequenceClassification,

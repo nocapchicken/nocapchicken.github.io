@@ -1,3 +1,4 @@
+# AI-assisted (Claude Code, claude.ai) — https://claude.ai
 """
 build_features.py — Feature engineering pipeline for nocapchicken.
 
@@ -13,8 +14,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
 logger = logging.getLogger(__name__)
@@ -141,12 +142,7 @@ def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _encode_target(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Encode the target variable.
-
-    Primary target: grade (A/B/C) as a 3-class classification problem.
-    Secondary target: score as a continuous regression target.
-    """
+    """Filter to valid grades (A/B/C) and add a label-encoded target column."""
     valid_grades = ["A", "B", "C"]
     df = df[df["grade"].isin(valid_grades)].copy()
 

@@ -133,43 +133,85 @@ def collect_inspections(
 
 def _scrape_county_bulk(county_code: int, date_from: str = "", date_to: str = "") -> list[dict]:
     """
-    Fetch all inspection records for one county in a single POST request
-    by setting _PageSize to a large number.
+    Fetch all inspection records for one county via the CSV export button.
+
+    The site's CSV export returns all matching records regardless of page size,
+    avoiding the need to paginate. Address fields arrive pre-split (city, zip
+    are separate columns) so no regex parsing is required.
 
     Args:
         county_code: NC DHHS county integer code
-        date_from: Optional date filter lower bound (MM/DD/YYYY)
-        date_to: Optional date filter upper bound (MM/DD/YYYY)
+        date_from: Inspection date lower bound (MM/DD/YYYY) — always set per year
+        date_to: Inspection date upper bound (MM/DD/YYYY)
     """
+    import io
+
     session = requests.Session()
     session.headers.update(HEADERS)
 
     url = f"{BASE_URL}?ESTTST_CTY={county_code}"
 
-    # Step 1: GET the initial page to harvest ASP.NET hidden fields
+    # Step 1: GET the page to harvest ASP.NET hidden fields
     resp = session.get(url, timeout=15)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "lxml")
 
-    # Step 2: POST with large page size + optional date filters
+    # Step 2: POST clicking the CSV export button with date filters applied
     payload = _build_postback_payload(soup, event_target="")
     payload.update({
-        "ctl00$PageContent$Pagination$_PageSize": "5000",
         "ctl00$PageContent$INSPECTION_DATEFromFilter": date_from,
         "ctl00$PageContent$INSPECTION_DATEToFilter": date_to,
-        # Simulate clicking the Refresh button (image button submits as name.x / name.y)
-        "ctl00$PageContent$RefreshButton1.x": "1",
-        "ctl00$PageContent$RefreshButton1.y": "1",
+        "ctl00$PageContent$CSVButton1.x": "1",
+        "ctl00$PageContent$CSVButton1.y": "1",
     })
 
-    resp = session.post(url, data=payload, timeout=30)
+    resp = session.post(url, data=payload, timeout=60)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "lxml")
 
-    rows = _parse_data_rows(soup, county_code)
-    logger.debug("County %d: %d records", county_code, len(rows))
-    return rows
-    return all_rows
+    if "text/plain" not in resp.headers.get("Content-Type", ""):
+        logger.warning("County %d: unexpected Content-Type %s — no CSV returned", county_code, resp.headers.get("Content-Type"))
+        return []
+
+    # Strip UTF-8 BOM if present and parse
+    df = pd.read_csv(io.StringIO(resp.text.lstrip("\ufeff")))
+    if df.empty:
+        return []
+
+    # Filter to food/restaurant establishment types
+    df = df[df["Establishment Type"].str.split(" - ").str[0].isin(RESTAURANT_TYPE_CODES)]
+
+    # Normalise to our internal schema
+    records = []
+    for _, row in df.iterrows():
+        addr1 = str(row.get("Premise Address 1") or "").strip()
+        addr2 = row.get("Premise Address 2")
+        addr2 = "" if pd.isna(addr2) else str(addr2).strip()
+        street = f"{addr1} {addr2}".strip() if addr2 else addr1
+
+        score_raw = row.get("Final Score")
+        try:
+            score = float(score_raw)
+        except (TypeError, ValueError):
+            score = None
+
+        records.append({
+            "county_code": county_code,
+            "establishment_id": "",
+            "inspection_id": "",
+            "inspection_date": str(row.get("Inspection Date", "")).strip(),
+            "establishment_name": str(row.get("Premises Name", "")).strip(),
+            "street_address": street,
+            "city": str(row.get("Premise City", "")).strip(),
+            "zip": str(row.get("Premise ZIP", "")).strip(),
+            "state_id": str(row.get("State ID#", "")).strip(),
+            "establishment_type": str(row.get("Establishment Type", "")).strip(),
+            "score": score,
+            "grade": str(row.get("Grade", "")).strip(),
+            "inspector_id": str(row.get("Inspector ID", "")).strip(),
+        })
+
+    logger.debug("County %d: %d records", county_code, len(records))
+    return records
 
 
 def _parse_data_rows(soup: BeautifulSoup, county_code: int) -> list[dict]:

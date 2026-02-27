@@ -80,17 +80,13 @@ def collect_inspections(
         Merged DataFrame of all collected inspection records
     """
     import datetime
-    current_year = datetime.date.today().year
-
     if years is None:
-        years = list(range(2020, current_year + 1))
+        years = list(range(2020, datetime.date.today().year + 1))
 
     for year in years:
         year_path = output_dir / f"inspections_{year}.csv"
-        # Always re-fetch the current year (still accumulating)
-        is_current = year == current_year
-        if year_path.exists() and year_path.stat().st_size > 0 and not force and not is_current:
-            logger.info("inspections_%d.csv exists — skipping.", year)
+        if year_path.exists() and year_path.stat().st_size > 0 and not force:
+            logger.info("inspections_%d.csv exists — skipping. Use --force or --years %d to re-fetch.", year, year)
             continue
 
         logger.info("Fetching %d inspection records...", year)

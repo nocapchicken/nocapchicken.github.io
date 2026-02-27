@@ -106,7 +106,6 @@ def explain_random_forest(model: RandomForestClassifier, X_test: pd.DataFrame) -
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_test)
 
-    # Save mean absolute SHAP values per feature
     mean_shap = np.abs(shap_values).mean(axis=0)
     if mean_shap.ndim == 2:
         mean_shap = mean_shap.mean(axis=1)

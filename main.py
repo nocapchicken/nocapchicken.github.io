@@ -1,12 +1,4 @@
-"""
-main.py — Entry point for the nocapchicken web application.
-
-Loads trained models and serves the inference API + frontend.
-No training happens here.
-
-Usage:
-    python main.py
-"""
+"""Entry point: serve the Flask inference app."""
 
 import sys
 from pathlib import Path

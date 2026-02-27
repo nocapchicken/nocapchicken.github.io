@@ -184,7 +184,6 @@ def _compute_shap(X: np.ndarray, col_names: list[str]) -> list[dict]:
 
     try:
         shap_vals = explainer.shap_values(X)
-        # For multi-class RF, shap_vals is a list of arrays (one per class)
         if isinstance(shap_vals, list):
             # Use the class with highest predicted probability
             model = _load_rf_model()
@@ -245,7 +244,7 @@ def predict(restaurant_name: str, city: str) -> PredictionResult:
 
     shap_features = _compute_shap(X, col_names)
 
-    # Divergence: both platforms rate highly but model predicts C
+    # Divergence flag: high platform ratings but low predicted grade
     avg_platform_rating = np.mean([
         r for r in [yelp.get("rating"), google.get("rating")] if r is not None
     ]) if (yelp.get("rating") or google.get("rating")) else None

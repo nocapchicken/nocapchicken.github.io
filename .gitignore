@@ -17,7 +17,6 @@ data/outputs/
 
 # Models — serialized sklearn/joblib artifacts are committed (small, required for app)
 # DistilBERT checkpoint is tracked via Git LFS (see .gitattributes)
-models/distilbert/
 
 # Notebooks checkpoints
 notebooks/.ipynb_checkpoints/

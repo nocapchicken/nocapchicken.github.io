@@ -87,6 +87,57 @@
       <!-- ── Result card (hidden until query) ─────────────────── -->
       <section class="result-section" id="resultSection" hidden>
 
+        <!-- Skeleton state -->
+        <div id="resultSkeleton" hidden>
+          <div class="skeleton-card">
+            <div class="skeleton-banner">
+              <div class="skeleton-banner-left">
+                <div class="skeleton-circle skeleton-bone"></div>
+                <div class="skeleton-banner-lines">
+                  <div class="skeleton-line skeleton-line--name skeleton-bone"></div>
+                  <div class="skeleton-line skeleton-line--loc skeleton-bone"></div>
+                </div>
+              </div>
+              <div class="skeleton-line skeleton-line--conf skeleton-bone"></div>
+            </div>
+            <div class="skeleton-platforms">
+              <div class="skeleton-platform-block">
+                <div class="skeleton-line skeleton-line--plabel skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--pvalue skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--pcount skeleton-bone"></div>
+              </div>
+              <div class="skeleton-platform-block">
+                <div class="skeleton-line skeleton-line--plabel skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--pvalue skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--pcount skeleton-bone"></div>
+              </div>
+              <div class="skeleton-platform-block">
+                <div class="skeleton-line skeleton-line--plabel skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--pvalue skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--pcount skeleton-bone"></div>
+              </div>
+            </div>
+            <div class="skeleton-shap">
+              <div class="skeleton-line skeleton-line--title skeleton-bone" style="margin-bottom:6px"></div>
+              <div class="skeleton-shap-row">
+                <div class="skeleton-line skeleton-line--feature skeleton-bone"></div>
+                <div class="skeleton-bar-bg skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--impact skeleton-bone"></div>
+              </div>
+              <div class="skeleton-shap-row">
+                <div class="skeleton-line skeleton-line--feature skeleton-bone"></div>
+                <div class="skeleton-bar-bg skeleton-bone" style="max-width:70%"></div>
+                <div class="skeleton-line skeleton-line--impact skeleton-bone"></div>
+              </div>
+              <div class="skeleton-shap-row">
+                <div class="skeleton-line skeleton-line--feature skeleton-bone"></div>
+                <div class="skeleton-bar-bg skeleton-bone" style="max-width:45%"></div>
+                <div class="skeleton-line skeleton-line--impact skeleton-bone"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Error state -->
         <div class="result-error" id="resultError" hidden>
           <p id="errorMessage"></p>
@@ -105,6 +156,7 @@
               </div>
             </div>
             <div class="grade-confidence">
+              <span class="data-badge data-badge--predicted">Random Forest</span>
               <span class="confidence-label">Model confidence</span>
               <span class="confidence-value" id="confidenceValue"></span>
             </div>
@@ -142,13 +194,19 @@
 
           <!-- SHAP explanation -->
           <div class="shap-section" id="shapSection">
-            <h3 class="section-title">What's driving this prediction</h3>
+            <div class="section-header">
+              <h3 class="section-title">What's driving this prediction</h3>
+              <span class="data-badge data-badge--explained">SHAP</span>
+            </div>
             <ul class="shap-list" id="shapList"></ul>
           </div>
 
           <!-- Sample reviews -->
           <div class="reviews-section" id="reviewsSection">
-            <h3 class="section-title">What people are saying</h3>
+            <div class="section-header">
+              <h3 class="section-title">What people are saying</h3>
+              <span class="data-badge data-badge--real">Yelp · Google</span>
+            </div>
             <ul class="reviews-list" id="reviewsList"></ul>
           </div>
 
@@ -188,7 +246,7 @@
 
   <footer class="site-footer">
     <div class="container">
-      <p>Data: <a href="https://public.cdpehs.com/NCENVPBL/INSPECTION_VIOLATION" target="_blank" rel="noopener">NC DHHS</a>, Yelp Fusion API, Google Places API.</p>
+      <p>Data: <a href="https://public.cdpehs.com/NCENVPBL/ESTABLISHMENT/ShowESTABLISHMENTTablePage.aspx" target="_blank" rel="noopener">NC DHHS</a>, Yelp Fusion API, Google Places API.</p>
       <p>Built for educational purposes. Not a substitute for official health inspection records.</p>
     </div>
   </footer>

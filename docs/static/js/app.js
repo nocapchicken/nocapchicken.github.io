@@ -4,12 +4,13 @@
 
   const API_BASE = 'https://nocapchicken-github-io.onrender.com';
 
-  const form        = document.getElementById('searchForm');
-  const btnSearch   = form.querySelector('.btn-search');
-  const resultSec   = document.getElementById('resultSection');
-  const resultCard  = document.getElementById('resultCard');
-  const resultError = document.getElementById('resultError');
-  const errorMsg    = document.getElementById('errorMessage');
+  const form           = document.getElementById('searchForm');
+  const btnSearch      = form.querySelector('.btn-search');
+  const resultSec      = document.getElementById('resultSection');
+  const resultCard     = document.getElementById('resultCard');
+  const resultError    = document.getElementById('resultError');
+  const resultSkeleton = document.getElementById('resultSkeleton');
+  const errorMsg       = document.getElementById('errorMessage');
 
   // ── Restaurant suggestions ──────────────────────────────────
 
@@ -40,6 +41,8 @@
 
     setLoading(true);
     hideAll();
+    resultSkeleton.hidden = false;
+    resultSec.hidden = false;
 
     try {
       const res = await fetch(`${API_BASE}/api/predict`, {
@@ -88,6 +91,7 @@
     renderShap(d.top_shap_features);
     renderReviews(d.sample_reviews);
 
+    resultSkeleton.hidden = true;
     resultCard.hidden = false;
     resultSec.hidden  = false;
     resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -161,14 +165,16 @@
   }
 
   function showError(msg) {
+    resultSkeleton.hidden = true;
     errorMsg.textContent = msg;
     resultError.hidden = false;
     resultSec.hidden   = false;
   }
 
   function hideAll() {
-    resultCard.hidden  = true;
-    resultError.hidden = true;
+    resultCard.hidden     = true;
+    resultError.hidden    = true;
+    resultSkeleton.hidden = true;
   }
 
   function setLoading(on) {

@@ -18,7 +18,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          prompt: |
+          direct_prompt: |
             You are a code reviewer for the **nocapchicken** ML project, an academic module
             project building a food-safety prediction app using NC restaurant inspection records.
 

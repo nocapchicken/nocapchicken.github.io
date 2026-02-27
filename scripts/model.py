@@ -66,20 +66,12 @@ def evaluate(model, X_test: pd.DataFrame, y_test: pd.Series, name: str) -> dict:
     return {"name": name, "report": report, "confusion_matrix": cm}
 
 
-# ---------------------------------------------------------------------------
-# 1. Naive baseline
-# ---------------------------------------------------------------------------
-
 def train_naive_baseline(X_train: pd.DataFrame, y_train: pd.Series) -> DummyClassifier:
     """Majority-class baseline that all other models must beat."""
     model = DummyClassifier(strategy="most_frequent", random_state=RANDOM_STATE)
     model.fit(X_train, y_train)
     return model
 
-
-# ---------------------------------------------------------------------------
-# 2. Classical ML — Random Forest
-# ---------------------------------------------------------------------------
 
 def train_random_forest(X_train: pd.DataFrame, y_train: pd.Series) -> RandomForestClassifier:
     """Returns best_estimator_ from 5-fold grid search (f1_macro)."""
@@ -114,10 +106,6 @@ def explain_random_forest(model: RandomForestClassifier, X_test: pd.DataFrame) -
     shap_df.to_csv(out_path, index=False)
     logger.info("SHAP importance written to %s", out_path)
 
-
-# ---------------------------------------------------------------------------
-# 3. Deep learning — DistilBERT
-# ---------------------------------------------------------------------------
 
 def train_distilbert(
     texts_train: list[str],
@@ -184,10 +172,6 @@ def train_distilbert(
     trainer.train()
     return trainer
 
-
-# ---------------------------------------------------------------------------
-# Main training pipeline
-# ---------------------------------------------------------------------------
 
 def main() -> None:
     """Train all models, save artifacts to models/, metrics to data/outputs/."""

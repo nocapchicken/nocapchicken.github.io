@@ -59,10 +59,6 @@ HEADERS = {
 RESTAURANT_TYPE_CODES = {"1", "2", "3", "4", "14", "15"}  # restaurants + food stands + mobile
 
 
-# ---------------------------------------------------------------------------
-# NC Inspection Records
-# ---------------------------------------------------------------------------
-
 def collect_inspections(
     output_dir: Path,
     county_codes: list[int] = NC_COUNTY_CODES,
@@ -214,10 +210,6 @@ def _build_postback_payload(soup: BeautifulSoup, event_target: str) -> dict:
     return payload
 
 
-# ---------------------------------------------------------------------------
-# Yelp Fusion API
-# ---------------------------------------------------------------------------
-
 def collect_yelp_reviews(
     api_key: str,
     inspections_path: Path,
@@ -253,7 +245,7 @@ def collect_yelp_reviews(
             "yelp_review_count": business.get("review_count"),
             "yelp_price": business.get("price"),
             "yelp_reviews": " ||| ".join(r["text"] for r in reviews),
-            "match_score": _fuzzy_match_score(row["establishment_name"], business["name"]),
+            "match_score": fuzz.token_sort_ratio(row["establishment_name"], business["name"]),
         })
         time.sleep(0.25)
 
@@ -291,10 +283,6 @@ def _yelp_reviews(business_id: str, headers: dict, limit: int = 3) -> list[dict]
     return reviews[:limit]
 
 
-# ---------------------------------------------------------------------------
-# Google Places API
-# ---------------------------------------------------------------------------
-
 def collect_google_reviews(
     api_key: str,
     inspections_path: Path,
@@ -316,9 +304,10 @@ def collect_google_reviews(
     for _, row in tqdm(inspections.iterrows(), total=len(inspections), desc="Google"):
         query = f"{row['establishment_name']} {row['street_address']} {row['city']} NC"
         try:
-            place = _google_search(gmaps, query)
-            if place is None:
+            candidates = gmaps.find_place(query, input_type="textquery", fields=["place_id", "name"]).get("candidates", [])
+            if not candidates:
                 continue
+            place = candidates[0]
 
             details = gmaps.place(place["place_id"], fields=["name", "rating", "user_ratings_total", "reviews"])
             detail_result = details.get("result", {})
@@ -334,7 +323,7 @@ def collect_google_reviews(
                 "google_rating": detail_result.get("rating"),
                 "google_review_count": detail_result.get("user_ratings_total"),
                 "google_reviews": reviews_text,
-                "match_score": _fuzzy_match_score(row["establishment_name"], detail_result.get("name", "")),
+                "match_score": fuzz.token_sort_ratio(row["establishment_name"], detail_result.get("name", "")),
             })
         except Exception as exc:
             logger.warning("Google lookup failed for '%s': %s", row["establishment_name"], exc)
@@ -345,21 +334,6 @@ def collect_google_reviews(
     df.to_csv(out_path, index=False)
     logger.info("Wrote %d Google records to %s", len(df), out_path)
     return df
-
-
-def _google_search(gmaps, query: str) -> dict | None:
-    result = gmaps.find_place(query, input_type="textquery", fields=["place_id", "name"])
-    candidates = result.get("candidates", [])
-    return candidates[0] if candidates else None
-
-
-# ---------------------------------------------------------------------------
-# Shared utilities
-# ---------------------------------------------------------------------------
-
-def _fuzzy_match_score(name_a: str, name_b: str) -> float:
-    """Return token sort ratio between two business names (0-100)."""
-    return fuzz.token_sort_ratio(name_a or "", name_b or "")
 
 
 if __name__ == "__main__":

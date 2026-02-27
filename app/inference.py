@@ -166,7 +166,7 @@ def _build_feature_vector(yelp: dict, google: dict) -> tuple[np.ndarray, list[st
     return X, col_names
 
 
-def _compute_shap(X: np.ndarray, col_names: list[str]) -> list[dict]:
+def _compute_shap(X: np.ndarray, col_names: list[str], pred_class: int) -> list[dict]:
     """Return top 3 SHAP feature impacts for the prediction."""
     explainer = _load_explainer()
     if explainer is None:
@@ -175,9 +175,6 @@ def _compute_shap(X: np.ndarray, col_names: list[str]) -> list[dict]:
     try:
         shap_vals = explainer.shap_values(X)
         if isinstance(shap_vals, list):
-            # Use the class with highest predicted probability
-            model = _load_rf_model()
-            pred_class = int(model.predict(X)[0])
             vals = shap_vals[pred_class][0]
         else:
             vals = shap_vals[0]
@@ -223,10 +220,16 @@ def predict(restaurant_name: str, city: str) -> PredictionResult:
     predicted_grade = GRADE_LABELS.get(pred_class, "?")
     grade_color = GRADE_COLORS.get(predicted_grade, "gray")
 
-    shap_features = _compute_shap(X, col_names)
+    shap_features = _compute_shap(X, col_names, pred_class)
 
     yelp_rating = yelp.get("rating")
     google_rating = google.get("rating")
+
+    rating_delta = (
+        round(abs(yelp_rating - google_rating), 2)
+        if yelp_rating is not None and google_rating is not None
+        else None
+    )
 
     # Divergence flag: high platform ratings but model predicts C
     platform_ratings = [r for r in (yelp_rating, google_rating) if r is not None]
@@ -235,14 +238,6 @@ def predict(restaurant_name: str, city: str) -> PredictionResult:
         predicted_grade == "C"
         and avg_platform_rating is not None
         and avg_platform_rating >= 4.0
-    )
-
-    sample_reviews = (yelp.get("reviews", []) + google.get("reviews", []))[:3]
-
-    rating_delta = (
-        round(abs(yelp_rating - google_rating), 2)
-        if yelp_rating is not None and google_rating is not None
-        else None
     )
 
     return PredictionResult(
@@ -258,5 +253,5 @@ def predict(restaurant_name: str, city: str) -> PredictionResult:
         rating_delta=rating_delta,
         top_shap_features=shap_features,
         divergence_warning=divergence_warning,
-        sample_reviews=sample_reviews,
+        sample_reviews=(yelp.get("reviews", []) + google.get("reviews", []))[:3],
     )

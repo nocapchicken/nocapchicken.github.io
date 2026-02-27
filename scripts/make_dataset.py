@@ -427,6 +427,7 @@ def _yelp_search(name: str, address: str, city: str, headers: dict) -> dict | No
         timeout=10,
     )
     if resp.status_code != 200:
+        logger.warning("Yelp search HTTP %d for '%s': %s", resp.status_code, name, resp.text[:200])
         return None
     businesses = resp.json().get("businesses", [])
     return businesses[0] if businesses else None

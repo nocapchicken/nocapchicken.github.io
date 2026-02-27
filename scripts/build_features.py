@@ -1,20 +1,13 @@
-"""
-build_features.py — Feature engineering pipeline for nocapchicken.
-
-Reads raw inspection + review data, merges them via fuzzy matching,
-and produces a clean feature matrix ready for modeling.
-
-Usage:
-    python scripts/build_features.py
-"""
+# AI-assisted (Claude Code, claude.ai) — https://claude.ai
+"""Merges inspection + review data via fuzzy matching into a feature matrix."""
 
 from __future__ import annotations
 
 import logging
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
 logger = logging.getLogger(__name__)
@@ -28,15 +21,7 @@ MATCH_THRESHOLD = 70
 
 
 def merge_inspection_years(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
-    """
-    Merge all per-year inspection files into a single inspections.csv.
-
-    Reads every inspections_{year}.csv in raw_dir, deduplicates on
-    (state_id, inspection_date), and writes inspections.csv.
-
-    Returns:
-        Merged DataFrame
-    """
+    """Deduplicates on (state_id, inspection_date) and writes inspections.csv."""
     year_files = sorted(raw_dir.glob("inspections_*.csv"))
     if not year_files:
         raise FileNotFoundError(
@@ -58,15 +43,7 @@ def merge_inspection_years(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
 
 
 def build_features() -> pd.DataFrame:
-    """
-    Full feature engineering pipeline.
-
-    Merges per-year inspection files first, then joins review data
-    and engineers features.
-
-    Returns:
-        DataFrame with one row per matched establishment, ready for modeling.
-    """
+    """Write data/processed/features.csv."""
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
     merge_inspection_years(RAW_DIR)
@@ -86,7 +63,6 @@ def build_features() -> pd.DataFrame:
 
 
 def _load_inspections() -> pd.DataFrame:
-    """Load and clean raw inspection records."""
     df = pd.read_csv(RAW_DIR / "inspections.csv")
     df["score"] = pd.to_numeric(df["score"], errors="coerce")
     df = df.dropna(subset=["score"])
@@ -122,7 +98,6 @@ def _merge(inspections: pd.DataFrame, yelp: pd.DataFrame, google: pd.DataFrame) 
 
 
 def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Compute derived features from raw columns."""
     # Rating delta: platform agreement signal
     if "yelp_rating" in df.columns and "google_rating" in df.columns:
         df["rating_delta"] = (df["yelp_rating"] - df["google_rating"]).abs()
@@ -141,12 +116,7 @@ def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _encode_target(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Encode the target variable.
-
-    Primary target: grade (A/B/C) as a 3-class classification problem.
-    Secondary target: score as a continuous regression target.
-    """
+    """Filter to valid grades (A/B/C) and add label-encoded target column."""
     valid_grades = ["A", "B", "C"]
     df = df[df["grade"].isin(valid_grades)].copy()
 

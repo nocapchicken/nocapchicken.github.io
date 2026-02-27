@@ -1,6 +1,5 @@
+# AI-assisted (Claude Code, claude.ai) — https://claude.ai
 """
-make_dataset.py — Data acquisition for nocapchicken.
-
 Data sources:
   1. NC DHHS public inspection records
        NC Department of Health and Human Services, Environmental Health Section.
@@ -29,9 +28,9 @@ NC DHHS page structure (confirmed via inspection):
 
 from __future__ import annotations
 
-import re
-import time
+import io
 import logging
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -60,10 +59,6 @@ HEADERS = {
 RESTAURANT_TYPE_CODES = {"1", "2", "3", "4", "14", "15"}  # restaurants + food stands + mobile
 
 
-# ---------------------------------------------------------------------------
-# NC Inspection Records
-# ---------------------------------------------------------------------------
-
 def collect_inspections(
     output_dir: Path,
     county_codes: list[int] = NC_COUNTY_CODES,
@@ -71,40 +66,29 @@ def collect_inspections(
     force: bool = False,
 ) -> pd.DataFrame:
     """
-    Scrape NC DHHS public inspection records, one file per year.
+    Scrape NC DHHS public inspection records, one CSV per year.
 
-    Each year is saved as inspections_{year}.csv. Years whose file already
-    exists are skipped unless force=True. The current year is always
-    re-fetched (data is still accumulating).
-
-    After collection, all year files are merged into inspections.csv.
-
-    Args:
-        output_dir: Directory to write per-year files and inspections.csv
-        county_codes: List of NC county integer codes to collect
-        years: Years to collect. Defaults to 2020 through current year.
-        force: Re-scrape all years, including ones already on disk.
-
-    Returns:
-        Merged DataFrame of all collected inspection records
+    Completed years are skipped unless force=True. The current year is
+    always re-fetched if the file is stale (not updated today).
     """
     import datetime
     if years is None:
         years = list(range(2020, datetime.date.today().year + 1))
 
+    today = datetime.date.today()
+
     for year in years:
         year_path = output_dir / f"inspections_{year}.csv"
+
         if _csv_has_rows(year_path) and not force:
-            is_current = year == datetime.date.today().year
-            if is_current:
-                last_modified = datetime.date.fromtimestamp(year_path.stat().st_mtime)
-                if last_modified >= datetime.date.today():
-                    logger.info("inspections_%d.csv already fetched today — skipping.", year)
-                    continue
-                logger.info("inspections_%d.csv is stale (last fetched %s) — re-fetching.", year, last_modified)
-            else:
+            if year != today.year:
                 logger.info("inspections_%d.csv exists — skipping.", year)
                 continue
+            last_modified = datetime.date.fromtimestamp(year_path.stat().st_mtime)
+            if last_modified >= today:
+                logger.info("inspections_%d.csv already fetched today — skipping.", year)
+                continue
+            logger.info("inspections_%d.csv is stale (last fetched %s) — re-fetching.", year, last_modified)
 
         logger.info("Fetching %d inspection records...", year)
         records = []
@@ -124,7 +108,6 @@ def collect_inspections(
         logger.info("  → %d records written to %s", len(df_year), year_path)
 
     logger.info("Collection done. Run build_features.py to merge year files.")
-    # Return whatever year files exist on disk so callers have something useful
     year_files = sorted(output_dir.glob("inspections_*.csv"))
     if not year_files:
         return pd.DataFrame()
@@ -132,20 +115,7 @@ def collect_inspections(
 
 
 def _scrape_county_bulk(county_code: int, date_from: str = "", date_to: str = "") -> list[dict]:
-    """
-    Fetch all inspection records for one county via the CSV export button.
-
-    The site's CSV export returns all matching records regardless of page size,
-    avoiding the need to paginate. Address fields arrive pre-split (city, zip
-    are separate columns) so no regex parsing is required.
-
-    Args:
-        county_code: NC DHHS county integer code
-        date_from: Inspection date lower bound (MM/DD/YYYY) — always set per year
-        date_to: Inspection date upper bound (MM/DD/YYYY)
-    """
-    import io
-
+    """Fetch all inspection records for one county via the site's CSV export."""
     session = requests.Session()
     session.headers.update(HEADERS)
 
@@ -214,131 +184,17 @@ def _scrape_county_bulk(county_code: int, date_from: str = "", date_to: str = ""
     return records
 
 
-def _parse_data_rows(soup: BeautifulSoup, county_code: int) -> list[dict]:
-    """
-    Extract data rows from a parsed inspection listing page.
-
-    Each data row is a <tr> with 10 <td> cells where the first cell
-    contains the text "Violation Details".
-
-    Column order (0-indexed):
-      0  violation link  (contains ESTABLISHMENT and INSPECTION ids in href)
-      1  inspection_date
-      2  premises_name
-      3  address_full    (street + city + state + zip concatenated)
-      4  state_id
-      5  establishment_type
-      6  final_score
-      7  grade
-      8  inspector_id
-      9  report link
-    """
-    rows = []
-
-    for tr in soup.find_all("tr"):
-        tds = tr.find_all("td")
-        if len(tds) != 10:
-            continue
-
-        texts = [td.get_text(separator=" ", strip=True) for td in tds]
-        if texts[0] != "Violation Details":
-            continue
-
-        # Filter to food/restaurant types only
-        est_type_raw = texts[5]
-        est_type_code = est_type_raw.split(" - ")[0].strip()
-        if est_type_code not in RESTAURANT_TYPE_CODES:
-            continue
-
-        # Extract ESTABLISHMENT and INSPECTION ids from the violation link href
-        violation_href = tds[0].find("a", href=True)
-        establishment_id, inspection_id = _parse_violation_href(
-            violation_href["href"] if violation_href else ""
-        )
-
-        # Parse the concatenated address field: "123 MAIN STCITY, NC 27601"
-        address_raw = texts[3].replace("\xa0", " ")
-        street, city, zipcode = _split_address(address_raw)
-
-        score_raw = texts[6].strip()
-        try:
-            score = float(score_raw)
-        except ValueError:
-            score = None
-
-        rows.append({
-            "county_code": county_code,
-            "establishment_id": establishment_id,
-            "inspection_id": inspection_id,
-            "inspection_date": texts[1],
-            "establishment_name": texts[2],
-            "street_address": street,
-            "city": city,
-            "zip": zipcode,
-            "state_id": texts[4],
-            "establishment_type": est_type_raw,
-            "score": score,
-            "grade": texts[7],
-            "inspector_id": texts[8],
-        })
-
-    return rows
-
-
 def _csv_has_rows(path: Path) -> bool:
-    """Return True only if the file exists and contains at least a header + one data row."""
     if not path.exists():
         return False
-    with open(path) as f:
-        lines = [l for l in f if l.strip()]
-    return len(lines) >= 2
-
-
-def _parse_violation_href(href: str) -> tuple[str, str]:
-    """Extract ESTABLISHMENT and INSPECTION ids from a violation detail URL."""
-    est = re.search(r"ESTABLISHMENT=(\d+)", href)
-    ins = re.search(r"INSPECTION=(\d+)", href)
-    return (est.group(1) if est else ""), (ins.group(1) if ins else "")
-
-
-# Longest suffix forms first so STREET matches before ST, BOULEVARD before BLVD, etc.
-_STREET_SUFFIX_RE = re.compile(
-    r"BOULEVARD|STREET|AVENUE|PARKWAY|HIGHWAY|CIRCLE|COURT|PLACE|TRAIL|DRIVE|ROAD"
-    r"|BLVD|PKWY|HWY|CIR|PL|TRL|AVE|LANE|LN|WAY|RD|DR|CT|ST"
-    r"(?:\s+(?:UNIT|STE|SUITE|APT|BLDG|#)\s*[\w-]+)?"
-)
-
-
-def _split_address(address_full: str) -> tuple[str, str, str]:
-    """
-    Split the concatenated address string into street, city, and zip.
-
-    The DHHS site omits the space between street and city, e.g.:
-      "101 N SCOTSWOOD BLVDHILLSBOROUGH, NC 27278"
-      "313 E MAIN STCARRBORO, NC 27510"
-      "200 W FRANKLIN STREET UNIT 130CHAPEL HILL, NC 27516"
-
-    Strategy:
-      1. Split on ", NC " to isolate (street+city) from zip.
-      2. Find the last street-suffix token in the combined string
-         (no word boundary needed — city follows the suffix directly).
-      3. Everything after the suffix end is the city.
-    """
-    parts = re.split(r",\s*NC\s+", address_full, maxsplit=1)
-    if len(parts) != 2:
-        return address_full, "", ""
-
-    street_city, zipcode = parts[0].strip(), parts[1].strip()
-
-    matches = list(_STREET_SUFFIX_RE.finditer(street_city))
-    if matches:
-        last = matches[-1]
-        return street_city[: last.end()].strip(), street_city[last.end() :].strip(), zipcode
-
-    return street_city, "", zipcode
-
-
-
+    with open(path) as fh:
+        non_blank = 0
+        for line in fh:
+            if line.strip():
+                non_blank += 1
+                if non_blank >= 2:
+                    return True
+    return False
 
 
 def _build_postback_payload(soup: BeautifulSoup, event_target: str) -> dict:
@@ -354,10 +210,6 @@ def _build_postback_payload(soup: BeautifulSoup, event_target: str) -> dict:
     return payload
 
 
-# ---------------------------------------------------------------------------
-# Yelp Fusion API
-# ---------------------------------------------------------------------------
-
 def collect_yelp_reviews(
     api_key: str,
     inspections_path: Path,
@@ -365,20 +217,7 @@ def collect_yelp_reviews(
     max_per_business: int = 3,
     force: bool = False,
 ) -> pd.DataFrame:
-    """
-    Match inspection records to Yelp businesses and fetch review data
-    via the RapidAPI Yelp Business API proxy.
-
-    Args:
-        api_key: RapidAPI key (RAPIDAPI_KEY in .env)
-        inspections_path: Path to inspections.csv
-        output_dir: Directory to write yelp_reviews.csv
-        max_per_business: Max reviews to store per business
-        force: Re-fetch even if yelp_reviews.csv already exists
-
-    Returns:
-        DataFrame with Yelp business metadata and reviews
-    """
+    """Match inspection records to Yelp businesses and fetch review data via RapidAPI."""
     out_path = output_dir / "yelp_reviews.csv"
     if _csv_has_rows(out_path) and not force:
         logger.info("yelp_reviews.csv already exists — skipping. Use force=True to re-fetch.")
@@ -406,19 +245,17 @@ def collect_yelp_reviews(
             "yelp_review_count": business.get("review_count"),
             "yelp_price": business.get("price"),
             "yelp_reviews": " ||| ".join(r["text"] for r in reviews),
-            "match_score": _fuzzy_match_score(row["establishment_name"], business["name"]),
+            "match_score": fuzz.token_sort_ratio(row["establishment_name"], business["name"]),
         })
         time.sleep(0.25)
 
     df = pd.DataFrame(results)
-    out_path = output_dir / "yelp_reviews.csv"
     df.to_csv(out_path, index=False)
     logger.info("Wrote %d Yelp records to %s", len(df), out_path)
     return df
 
 
 def _yelp_search(name: str, address: str, city: str, headers: dict) -> dict | None:
-    """Search Yelp for a single business by name and location (RapidAPI)."""
     params = {"term": name, "location": f"{address}, {city}, NC", "limit": "1"}
     resp = requests.get(
         "https://yelp-business-api.p.rapidapi.com/search",
@@ -427,13 +264,13 @@ def _yelp_search(name: str, address: str, city: str, headers: dict) -> dict | No
         timeout=10,
     )
     if resp.status_code != 200:
+        logger.warning("Yelp search HTTP %d for '%s': %s", resp.status_code, name, resp.text[:200])
         return None
     businesses = resp.json().get("businesses", [])
     return businesses[0] if businesses else None
 
 
 def _yelp_reviews(business_id: str, headers: dict, limit: int = 3) -> list[dict]:
-    """Fetch reviews for a Yelp business (RapidAPI)."""
     resp = requests.get(
         "https://yelp-business-api.p.rapidapi.com/reviews",
         headers=headers,
@@ -446,28 +283,13 @@ def _yelp_reviews(business_id: str, headers: dict, limit: int = 3) -> list[dict]
     return reviews[:limit]
 
 
-# ---------------------------------------------------------------------------
-# Google Places API
-# ---------------------------------------------------------------------------
-
 def collect_google_reviews(
     api_key: str,
     inspections_path: Path,
     output_dir: Path,
     force: bool = False,
 ) -> pd.DataFrame:
-    """
-    Match inspection records to Google Places and fetch review data.
-
-    Args:
-        api_key: Google Places API key
-        inspections_path: Path to inspections.csv
-        output_dir: Directory to write google_reviews.csv
-        force: Re-fetch even if google_reviews.csv already exists
-
-    Returns:
-        DataFrame with Google Places metadata and reviews
-    """
+    """Match inspection records to Google Places and fetch review data."""
     out_path = output_dir / "google_reviews.csv"
     if _csv_has_rows(out_path) and not force:
         logger.info("google_reviews.csv already exists — skipping. Use force=True to re-fetch.")
@@ -482,9 +304,10 @@ def collect_google_reviews(
     for _, row in tqdm(inspections.iterrows(), total=len(inspections), desc="Google"):
         query = f"{row['establishment_name']} {row['street_address']} {row['city']} NC"
         try:
-            place = _google_search(gmaps, query)
-            if place is None:
+            candidates = gmaps.find_place(query, input_type="textquery", fields=["place_id", "name"]).get("candidates", [])
+            if not candidates:
                 continue
+            place = candidates[0]
 
             details = gmaps.place(place["place_id"], fields=["name", "rating", "user_ratings_total", "reviews"])
             detail_result = details.get("result", {})
@@ -500,7 +323,7 @@ def collect_google_reviews(
                 "google_rating": detail_result.get("rating"),
                 "google_review_count": detail_result.get("user_ratings_total"),
                 "google_reviews": reviews_text,
-                "match_score": _fuzzy_match_score(row["establishment_name"], detail_result.get("name", "")),
+                "match_score": fuzz.token_sort_ratio(row["establishment_name"], detail_result.get("name", "")),
             })
         except Exception as exc:
             logger.warning("Google lookup failed for '%s': %s", row["establishment_name"], exc)
@@ -508,23 +331,10 @@ def collect_google_reviews(
         time.sleep(0.1)
 
     df = pd.DataFrame(results)
-    out_path = output_dir / "google_reviews.csv"
     df.to_csv(out_path, index=False)
     logger.info("Wrote %d Google records to %s", len(df), out_path)
     return df
 
 
-def _google_search(gmaps, query: str) -> dict | None:
-    """Search Google Places for a single establishment."""
-    result = gmaps.find_place(query, input_type="textquery", fields=["place_id", "name"])
-    candidates = result.get("candidates", [])
-    return candidates[0] if candidates else None
-
-
-# ---------------------------------------------------------------------------
-# Shared utilities
-# ---------------------------------------------------------------------------
-
-def _fuzzy_match_score(name_a: str, name_b: str) -> float:
-    """Return token sort ratio between two business names (0–100)."""
-    return fuzz.token_sort_ratio(name_a or "", name_b or "")
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)

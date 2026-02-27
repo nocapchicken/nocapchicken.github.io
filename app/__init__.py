@@ -1,5 +1,4 @@
-"""Flask application factory for nocapchicken."""
-
+# AI-assisted (Claude Code, claude.ai) — https://claude.ai
 from flask import Flask
 
 from .routes import bp

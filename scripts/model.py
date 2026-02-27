@@ -1,28 +1,24 @@
+# AI-assisted (Claude Code, claude.ai) — https://claude.ai
 """
-model.py — Train and evaluate all three required modeling approaches.
-
-Models:
+Three required modeling approaches:
   1. Naive baseline     — majority class classifier
   2. Classical ML       — Random Forest with SHAP explainability
   3. Deep learning      — DistilBERT fine-tuned on combined review text
-
-Usage:
-    python scripts/model.py
 """
 
 from __future__ import annotations
 
 import logging
-import joblib
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 import shap
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import GridSearchCV, train_test_split
 
 logger = logging.getLogger(__name__)
 
@@ -36,14 +32,18 @@ TEST_SIZE = 0.2
 TARGET_COL = "grade_encoded"
 
 
+EXCLUDE_COLS = {
+    TARGET_COL, "grade", "combined_reviews", "establishment_name",
+    "address", "yelp_reviews", "google_reviews",
+}
+
+
 def load_data() -> tuple[pd.DataFrame, pd.Series]:
     """Load the processed feature matrix."""
     df = pd.read_csv(PROCESSED_DIR / "features.csv")
     feature_cols = [
-        c for c in df.columns
-        if c not in [TARGET_COL, "grade", "combined_reviews", "establishment_name",
-                     "address", "yelp_reviews", "google_reviews"]
-        and df[c].dtype in [np.float64, np.int64, float, int]
+        col for col in df.columns
+        if col not in EXCLUDE_COLS and np.issubdtype(df[col].dtype, np.number)
     ]
     X = df[feature_cols].fillna(0)
     y = df[TARGET_COL]
@@ -51,7 +51,7 @@ def load_data() -> tuple[pd.DataFrame, pd.Series]:
 
 
 def evaluate(model, X_test: pd.DataFrame, y_test: pd.Series, name: str) -> dict:
-    """Print and return classification metrics for a fitted model."""
+    """Save confusion matrix to data/outputs/."""
     y_pred = model.predict(X_test)
     report = classification_report(y_test, y_pred, output_dict=True)
     cm = confusion_matrix(y_test, y_pred)
@@ -66,29 +66,15 @@ def evaluate(model, X_test: pd.DataFrame, y_test: pd.Series, name: str) -> dict:
     return {"name": name, "report": report, "confusion_matrix": cm}
 
 
-# ---------------------------------------------------------------------------
-# 1. Naive baseline
-# ---------------------------------------------------------------------------
-
-def train_naive_baseline(X_train, y_train) -> DummyClassifier:
-    """
-    Majority class classifier — always predicts the most frequent grade.
-    Serves as the performance floor all other models must beat.
-    """
+def train_naive_baseline(X_train: pd.DataFrame, y_train: pd.Series) -> DummyClassifier:
+    """Majority-class baseline that all other models must beat."""
     model = DummyClassifier(strategy="most_frequent", random_state=RANDOM_STATE)
     model.fit(X_train, y_train)
     return model
 
 
-# ---------------------------------------------------------------------------
-# 2. Classical ML — Random Forest
-# ---------------------------------------------------------------------------
-
-def train_random_forest(X_train, y_train) -> RandomForestClassifier:
-    """
-    Random Forest with grid-searched hyperparameters.
-    SHAP values are computed separately via explain_random_forest().
-    """
+def train_random_forest(X_train: pd.DataFrame, y_train: pd.Series) -> RandomForestClassifier:
+    """Returns best_estimator_ from 5-fold grid search (f1_macro)."""
     param_grid = {
         "n_estimators": [100, 200],
         "max_depth": [None, 10, 20],
@@ -102,10 +88,11 @@ def train_random_forest(X_train, y_train) -> RandomForestClassifier:
 
 
 def explain_random_forest(model: RandomForestClassifier, X_test: pd.DataFrame) -> None:
-    """Compute and save SHAP feature importance for the Random Forest."""
+    """Save SHAP feature importance to data/outputs/."""
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_test)
 
+    # Average absolute SHAP across samples; collapse class axis if multiclass
     mean_shap = np.abs(shap_values).mean(axis=0)
     if mean_shap.ndim == 2:
         mean_shap = mean_shap.mean(axis=1)
@@ -120,10 +107,6 @@ def explain_random_forest(model: RandomForestClassifier, X_test: pd.DataFrame) -
     logger.info("SHAP importance written to %s", out_path)
 
 
-# ---------------------------------------------------------------------------
-# 3. Deep learning — DistilBERT
-# ---------------------------------------------------------------------------
-
 def train_distilbert(
     texts_train: list[str],
     y_train: list[int],
@@ -133,21 +116,7 @@ def train_distilbert(
     epochs: int = 3,
     batch_size: int = 16,
 ):
-    """
-    Fine-tune DistilBERT on combined review text for grade classification.
-
-    Args:
-        texts_train: List of review strings for training
-        y_train: Encoded grade labels for training
-        texts_test: List of review strings for evaluation
-        y_test: Encoded grade labels for evaluation
-        num_labels: Number of output classes (A/B/C = 3)
-        epochs: Number of training epochs
-        batch_size: Training batch size
-
-    Returns:
-        Trained HuggingFace Trainer object
-    """
+    """Fine-tune DistilBERT for grade classification."""
     from transformers import (
         DistilBertTokenizerFast,
         DistilBertForSequenceClassification,
@@ -204,12 +173,8 @@ def train_distilbert(
     return trainer
 
 
-# ---------------------------------------------------------------------------
-# Main training pipeline
-# ---------------------------------------------------------------------------
-
 def main() -> None:
-    """Train all three models, evaluate, and persist artifacts."""
+    """Train all models, save artifacts to models/, metrics to data/outputs/."""
     logging.basicConfig(level=logging.INFO)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 

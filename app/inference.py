@@ -1,15 +1,10 @@
-"""
-inference.py — Model loading and prediction for the nocapchicken web app.
-
-Loads trained artifacts once at startup and exposes a single predict() function.
-No training happens here.
-"""
+# AI-assisted (Claude Code, claude.ai) — https://claude.ai
+"""Loads trained artifacts at startup. No training happens here (APP1)."""
 
 from __future__ import annotations
 
-import os
 import logging
-import time
+import os
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
@@ -50,7 +45,6 @@ class PredictionResult:
 
 @lru_cache(maxsize=1)
 def _load_rf_model():
-    """Load the Random Forest model (cached after first call)."""
     path = MODELS_DIR / "random_forest.pkl"
     if not path.exists():
         logger.warning("Random Forest model not found at %s", path)
@@ -60,7 +54,6 @@ def _load_rf_model():
 
 @lru_cache(maxsize=1)
 def _load_explainer():
-    """Load the SHAP TreeExplainer (cached after first call)."""
     model = _load_rf_model()
     if model is None:
         return None
@@ -149,19 +142,28 @@ def _fetch_google(name: str, city: str) -> dict:
         return {}
 
 
-def _build_feature_vector(yelp: dict, google: dict) -> tuple[np.ndarray, list[str]]:
-    """
-    Construct the numeric feature vector expected by the Random Forest.
-    Must match the columns produced by build_features.py.
-    """
+@dataclass
+class _FeatureData:
+    """Feature vector plus the raw values needed by PredictionResult."""
+    X: np.ndarray
+    col_names: list[str]
+    yelp_rating: float | None
+    google_rating: float | None
+    rating_delta: float | None
+
+
+def _build_feature_vector(yelp: dict, google: dict) -> _FeatureData:
+    """Must match the columns produced by build_features.py."""
     yelp_rating = yelp.get("rating")
     google_rating = google.get("rating")
     yelp_count = yelp.get("review_count", 0) or 0
     google_count = google.get("review_count", 0) or 0
 
-    rating_delta = None
-    if yelp_rating is not None and google_rating is not None:
-        rating_delta = abs(yelp_rating - google_rating)
+    rating_delta = (
+        abs(yelp_rating - google_rating)
+        if yelp_rating is not None and google_rating is not None
+        else None
+    )
 
     features = {
         "yelp_rating": yelp_rating or 0.0,
@@ -171,13 +173,17 @@ def _build_feature_vector(yelp: dict, google: dict) -> tuple[np.ndarray, list[st
         "google_review_count_log": np.log1p(google_count),
     }
 
-    X = np.array(list(features.values())).reshape(1, -1)
-    col_names = list(features.keys())
-    return X, col_names
+    return _FeatureData(
+        X=np.array(list(features.values())).reshape(1, -1),
+        col_names=list(features.keys()),
+        yelp_rating=yelp_rating,
+        google_rating=google_rating,
+        rating_delta=round(rating_delta, 2) if rating_delta is not None else None,
+    )
 
 
-def _compute_shap(X: np.ndarray, col_names: list[str]) -> list[dict]:
-    """Return top SHAP feature impacts for the prediction."""
+def _compute_shap(X: np.ndarray, col_names: list[str], pred_class: int) -> list[dict]:
+    """Return top 3 SHAP feature impacts for the prediction."""
     explainer = _load_explainer()
     if explainer is None:
         return []
@@ -185,18 +191,15 @@ def _compute_shap(X: np.ndarray, col_names: list[str]) -> list[dict]:
     try:
         shap_vals = explainer.shap_values(X)
         if isinstance(shap_vals, list):
-            # Use the class with highest predicted probability
-            model = _load_rf_model()
-            pred_class = int(model.predict(X)[0])
             vals = shap_vals[pred_class][0]
         else:
             vals = shap_vals[0]
 
         impacts = [
-            {"feature": col_names[i], "impact": float(vals[i])}
-            for i in range(len(col_names))
+            {"feature": name, "impact": float(val)}
+            for name, val in zip(col_names, vals)
         ]
-        impacts.sort(key=lambda x: abs(x["impact"]), reverse=True)
+        impacts.sort(key=lambda item: abs(item["impact"]), reverse=True)
         return impacts[:3]
     except Exception as exc:
         logger.warning("SHAP computation failed: %s", exc)
@@ -204,16 +207,7 @@ def _compute_shap(X: np.ndarray, col_names: list[str]) -> list[dict]:
 
 
 def predict(restaurant_name: str, city: str) -> PredictionResult:
-    """
-    Run end-to-end inference for a given restaurant name and NC city.
-
-    Args:
-        restaurant_name: User-supplied restaurant name
-        city: NC city name
-
-    Returns:
-        PredictionResult with all data for the frontend
-    """
+    """Run end-to-end inference for a restaurant."""
     model = _load_rf_model()
     if model is None:
         return PredictionResult(
@@ -235,47 +229,35 @@ def predict(restaurant_name: str, city: str) -> PredictionResult:
     yelp = _fetch_yelp(restaurant_name, city)
     google = _fetch_google(restaurant_name, city)
 
-    X, col_names = _build_feature_vector(yelp, google)
-    proba = model.predict_proba(X)[0]
+    feat = _build_feature_vector(yelp, google)
+    proba = model.predict_proba(feat.X)[0]
     pred_class = int(np.argmax(proba))
     confidence = float(proba[pred_class])
     predicted_grade = GRADE_LABELS.get(pred_class, "?")
-    grade_color = GRADE_COLORS.get(predicted_grade, "gray")
 
-    shap_features = _compute_shap(X, col_names)
+    shap_features = _compute_shap(feat.X, feat.col_names, pred_class)
 
-    # Divergence flag: high platform ratings but low predicted grade
-    avg_platform_rating = np.mean([
-        r for r in [yelp.get("rating"), google.get("rating")] if r is not None
-    ]) if (yelp.get("rating") or google.get("rating")) else None
+    # Divergence flag: high platform ratings but model predicts C
+    platform_ratings = [r for r in (feat.yelp_rating, feat.google_rating) if r is not None]
+    avg_platform = np.mean(platform_ratings) if platform_ratings else None
     divergence_warning = (
         predicted_grade == "C"
-        and avg_platform_rating is not None
-        and avg_platform_rating >= 4.0
-    )
-
-    sample_reviews = (yelp.get("reviews", []) + google.get("reviews", []))[:3]
-
-    yelp_rating = yelp.get("rating")
-    google_rating = google.get("rating")
-    rating_delta = (
-        round(abs(yelp_rating - google_rating), 2)
-        if yelp_rating is not None and google_rating is not None
-        else None
+        and avg_platform is not None
+        and avg_platform >= 4.0
     )
 
     return PredictionResult(
         restaurant_name=restaurant_name,
         location=city,
         predicted_grade=predicted_grade,
-        grade_color=grade_color,
+        grade_color=GRADE_COLORS.get(predicted_grade, "gray"),
         confidence=confidence,
-        yelp_rating=yelp_rating,
+        yelp_rating=feat.yelp_rating,
         yelp_review_count=yelp.get("review_count"),
-        google_rating=google_rating,
+        google_rating=feat.google_rating,
         google_review_count=google.get("review_count"),
-        rating_delta=rating_delta,
+        rating_delta=feat.rating_delta,
         top_shap_features=shap_features,
         divergence_warning=divergence_warning,
-        sample_reviews=sample_reviews,
+        sample_reviews=(yelp.get("reviews", []) + google.get("reviews", []))[:3],
     )

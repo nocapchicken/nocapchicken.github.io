@@ -1,5 +1,4 @@
-"""Routes for the nocapchicken Flask app."""
-
+# AI-assisted (Claude Code, claude.ai) — https://claude.ai
 from __future__ import annotations
 
 import dataclasses
@@ -15,18 +14,12 @@ bp = Blueprint("main", __name__)
 
 @bp.get("/")
 def index():
-    """Serve the main search page."""
     return render_template("index.html")
 
 
 @bp.post("/api/predict")
 def api_predict():
-    """
-    Run model inference for a restaurant lookup.
-
-    Request JSON: {"name": str, "city": str}
-    Response JSON: PredictionResult as dict
-    """
+    """Run model inference. Expects JSON {"name": str, "city": str}."""
     body = request.get_json(silent=True) or {}
     name = (body.get("name") or "").strip()
     city = (body.get("city") or "").strip()

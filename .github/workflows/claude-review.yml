@@ -1,12 +1,13 @@
 name: Claude Code PR Review
 
+# Manual trigger only — run when you actually want a substantive review,
+# not on every push. Invoke via Actions → "Run workflow".
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-
-concurrency:
-  group: claude-review-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to review"
+        required: true
 
 permissions:
   contents: read
@@ -19,22 +20,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Delete previous Claude review comments
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          gh api repos/${{ github.repository }}/issues/${PR_NUMBER}/comments \
-            --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | contains("Claude finished") or contains("Claude Code is working")) | .id' \
-          | xargs -I{} gh api --method DELETE repos/${{ github.repository }}/issues/comments/{}
-
       - uses: anthropics/claude-code-action@28f83620103c48a57093dcc2837eec89e036bb9f
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           use_sticky_comment: true
           direct_prompt: |
-            Review this PR for the nocapchicken ML project against `REQUIREMENTS_CHECKLIST.md`.
+            Review PR #${{ github.event.inputs.pr_number }} for the nocapchicken ML project against `REQUIREMENTS_CHECKLIST.md`.
 
             Check:
             - **Rubric compliance** — flag violations by ID (e.g. CQ5, GIT6)

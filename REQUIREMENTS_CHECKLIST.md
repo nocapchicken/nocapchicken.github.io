@@ -1,16 +1,7 @@
 # Project Requirements Checklist
 
-> **Purpose:** Track rubric compliance. Used by team members, PR reviewers, and the automated
-> Claude Code review workflow (`.github/workflows/claude-review.yml`).
->
-> Mark items `[x]` as they are completed. Items marked ⚠️ are graded and will result in
-> point deductions or zeros if missed.
->
-> **Grader notes from prior cohort submission (83/100):** Deductions came from:
-> - `-5` Experiment was conducted but not strongly connected to final modeling decisions
-> - `-5` Error analysis mitigation strategies were too vague ("ask for the next paper")
-> - `-5` PRs lacked meaningful descriptions — *every PR needs a description, even a short one*
-> - `-2` "LGTM" is **not** an acceptable PR review — reviewers must leave substantive comments
+> Mark items `[x]` as they are completed. Items marked ⚠️ are graded.
+> Live view: **https://nocapchicken.github.io/checklist/** (auto-updated on merge to `main`)
 
 ---
 
@@ -33,10 +24,7 @@ All three must be **implemented, evaluated, and findable** in the repo.
 ## 2. Required Experimentation ⚠️
 
 At least **one focused experiment** must be implemented and written up.
-
-> **Grader warning (-5 risk):** A previous team ran a "frozen vs. fine-tuned embedding"
-> experiment but lost 5 points because the results didn't clearly *inform* their final modeling
-> choice. The experiment must answer a question that changes or validates a decision in your system.
+The experiment must directly inform or validate a modeling/system decision (EX5 — grader deducted −5 when this was missing).
 
 - [ ] **EX1** — Experiment is well-motivated: poses a specific question about your system
 - [ ] **EX2** — Experimental plan documented (hypothesis, method, metrics)
@@ -44,12 +32,6 @@ At least **one focused experiment** must be implemented and written up.
 - [ ] **EX4** — Interpretation written: what do the results tell you?
 - [ ] **EX5** — Experiment **directly informs a modeling or system design decision**
 - [ ] **EX6** — Actionable recommendations drawn from experiment
-
-Suggested options (pick one):
-- Ablation: model with only Yelp features vs. only Google vs. both → informs which API is worth the cost
-- Sensitivity: training set size vs. macro F1 → informs minimum viable data collection
-- Robustness: inject ±0.5 star noise into ratings → informs whether to trust sparse review counts
-- Preprocessing: fuzzy-match threshold (60/70/80) effect on dataset yield and model score
 
 ---
 
@@ -131,10 +113,6 @@ Format: NeurIPS/ICML-style paper, white paper, or technical report.
 > Note: Jupyter notebooks are allowed **only** in `notebooks/` and will not be graded directly.
 
 ### Git Best Practices ⚠️
-
-> **Grader warning (-5 + -2 risk):** Prior team lost 7 points here:
-> - Every PR must have a written description, even a short one
-> - "LGTM" is **not** an acceptable review — leave at least one substantive comment per PR
 
 - [x] **GIT1** — Feature branches in use (current: `feature/flask-app`)
 - [x] **GIT2** — PR template in `.github/PULL_REQUEST_TEMPLATE/`

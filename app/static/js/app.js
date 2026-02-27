@@ -109,8 +109,8 @@
     const starsEl = document.getElementById(`${platform}Stars`);
     const countEl = document.getElementById(`${platform}Count`);
 
-    if (rating !== null && rating !== undefined) {
-      starsEl.textContent = `${rating.toFixed(1)} ★`;
+    if (rating != null) {
+      starsEl.innerHTML = `${rating.toFixed(1)} <span class="star-glyph">★</span>`;
       countEl.textContent = count ? `${count.toLocaleString()} reviews` : '';
     } else {
       starsEl.textContent = 'N/A';

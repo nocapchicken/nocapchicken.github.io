@@ -99,7 +99,7 @@
     const countEl = document.getElementById(`${platform}Count`);
 
     if (rating != null) {
-      starsEl.textContent = `${rating.toFixed(1)} ★`;
+      starsEl.innerHTML = `${rating.toFixed(1)} <span class="star-glyph">★</span>`;
       countEl.textContent = count ? `${count.toLocaleString()} reviews` : '';
     } else {
       starsEl.textContent = 'N/A';

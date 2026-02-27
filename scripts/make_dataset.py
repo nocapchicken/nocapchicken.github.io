@@ -89,7 +89,7 @@ def collect_inspections(
         year_path = output_dir / f"inspections_{year}.csv"
         # Always re-fetch the current year (still accumulating)
         is_current = year == current_year
-        if year_path.exists() and not force and not is_current:
+        if year_path.exists() and year_path.stat().st_size > 0 and not force and not is_current:
             logger.info("inspections_%d.csv exists — skipping.", year)
             continue
 
@@ -316,7 +316,7 @@ def collect_yelp_reviews(
         DataFrame with Yelp business metadata and reviews
     """
     out_path = output_dir / "yelp_reviews.csv"
-    if out_path.exists() and not force:
+    if out_path.exists() and out_path.stat().st_size > 0 and not force:
         logger.info("yelp_reviews.csv already exists — skipping. Use force=True to re-fetch.")
         return pd.read_csv(out_path)
 
@@ -405,7 +405,7 @@ def collect_google_reviews(
         DataFrame with Google Places metadata and reviews
     """
     out_path = output_dir / "google_reviews.csv"
-    if out_path.exists() and not force:
+    if out_path.exists() and out_path.stat().st_size > 0 and not force:
         logger.info("google_reviews.csv already exists — skipping. Use force=True to re-fetch.")
         return pd.read_csv(out_path)
 

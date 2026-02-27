@@ -52,6 +52,16 @@ def _load_rf_model():
 
 
 @lru_cache(maxsize=1)
+def _load_feature_names() -> list[str]:
+    """Load the feature names the RF was trained on."""
+    path = MODELS_DIR / "rf_feature_names.pkl"
+    if not path.exists():
+        logger.warning("rf_feature_names.pkl not found — falling back to hardcoded features")
+        return ["google_rating", "google_review_count_log"]
+    return joblib.load(path)
+
+
+@lru_cache(maxsize=1)
 def _load_explainer():
     import shap
     model = _load_rf_model()
@@ -153,7 +163,7 @@ class _FeatureData:
 
 
 def _build_feature_vector(yelp: dict, google: dict) -> _FeatureData:
-    """Must match the columns produced by build_features.py."""
+    """Build feature vector matching the columns the RF was trained on."""
     yelp_rating = yelp.get("rating")
     google_rating = google.get("rating")
     yelp_count = yelp.get("review_count", 0) or 0
@@ -165,7 +175,8 @@ def _build_feature_vector(yelp: dict, google: dict) -> _FeatureData:
         else None
     )
 
-    features = {
+    # All possible features inference can provide — keyed by column name
+    available = {
         "yelp_rating": yelp_rating or 0.0,
         "google_rating": google_rating or 0.0,
         "rating_delta": rating_delta or 0.0,
@@ -173,9 +184,12 @@ def _build_feature_vector(yelp: dict, google: dict) -> _FeatureData:
         "google_review_count_log": np.log1p(google_count),
     }
 
+    feature_names = _load_feature_names()
+    feature_values = [available.get(name, 0.0) for name in feature_names]
+
     return _FeatureData(
-        X=np.array(list(features.values())).reshape(1, -1),
-        col_names=list(features.keys()),
+        X=np.array(feature_values).reshape(1, -1),
+        col_names=feature_names,
         yelp_rating=yelp_rating,
         google_rating=google_rating,
         rating_delta=round(rating_delta, 2) if rating_delta is not None else None,

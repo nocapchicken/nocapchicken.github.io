@@ -33,8 +33,18 @@ TARGET_COL = "grade_encoded"
 
 
 EXCLUDE_COLS = {
-    TARGET_COL, "grade", "combined_reviews", "establishment_name",
-    "address", "yelp_reviews", "google_reviews",
+    # Target and raw text
+    TARGET_COL, "grade", "combined_reviews",
+    "yelp_reviews", "google_reviews",
+    # Direct label leakage — score determines grade by definition
+    "score",
+    # Identifiers with no predictive value
+    "establishment_name", "street_address", "address", "city", "zip",
+    "county_code", "establishment_id", "inspection_id", "inspection_id_google",
+    "state_id", "inspector_id", "inspection_date",
+    "google_place_id", "google_name", "match_score",
+    # Raw counts — only log-transformed versions are used
+    "google_review_count", "yelp_review_count",
 }
 
 
@@ -133,7 +143,7 @@ def train_distilbert(
 
         def __getitem__(self, idx):
             item = {k: torch.tensor(v[idx]) for k, v in self.encodings.items()}
-            item["labels"] = torch.tensor(self.labels[idx])
+            item["labels"] = torch.tensor(self.labels[idx], dtype=torch.long)
             return item
 
         def __len__(self):
@@ -155,7 +165,7 @@ def train_distilbert(
         num_train_epochs=epochs,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
-        evaluation_strategy="epoch",
+        eval_strategy="epoch",
         save_strategy="epoch",
         load_best_model_at_end=True,
         metric_for_best_model="eval_loss",
@@ -175,6 +185,11 @@ def train_distilbert(
 
 def main() -> None:
     """Train all models, save artifacts to models/, metrics to data/outputs/."""
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--skip-bert", action="store_true", help="Skip DistilBERT training")
+    args = parser.parse_args()
+
     logging.basicConfig(level=logging.INFO)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -195,20 +210,24 @@ def main() -> None:
     results.append(evaluate(rf, X_test, y_test, "Random Forest"))
     explain_random_forest(rf, X_test)
     joblib.dump(rf, MODELS_DIR / "random_forest.pkl")
+    joblib.dump(X_train.columns.tolist(), MODELS_DIR / "rf_feature_names.pkl")
 
     # 3. DistilBERT (requires combined_reviews column to exist)
-    features_df = pd.read_csv(PROCESSED_DIR / "features.csv")
-    if "combined_reviews" in features_df.columns:
-        texts = features_df["combined_reviews"].fillna("").tolist()
-        labels = features_df[TARGET_COL].tolist()
-        texts_train, texts_test, yl_train, yl_test = train_test_split(
-            texts, labels, test_size=TEST_SIZE, random_state=RANDOM_STATE
-        )
-        trainer = train_distilbert(texts_train, yl_train, texts_test, yl_test)
-        trainer.save_model(str(MODELS_DIR / "distilbert"))
-        logger.info("DistilBERT saved to models/distilbert/")
+    if args.skip_bert:
+        logger.info("Skipping DistilBERT training (--skip-bert)")
     else:
-        logger.warning("No combined_reviews column found — skipping DistilBERT training.")
+        features_df = pd.read_csv(PROCESSED_DIR / "features.csv")
+        if "combined_reviews" not in features_df.columns:
+            logger.warning("No combined_reviews column found — skipping DistilBERT training.")
+        else:
+            texts = features_df["combined_reviews"].fillna("").tolist()
+            labels = features_df[TARGET_COL].tolist()
+            texts_train, texts_test, yl_train, yl_test = train_test_split(
+                texts, labels, test_size=TEST_SIZE, random_state=RANDOM_STATE
+            )
+            trainer = train_distilbert(texts_train, yl_train, texts_test, yl_test)
+            trainer.save_model(str(MODELS_DIR / "distilbert"))
+            logger.info("DistilBERT saved to models/distilbert/")
 
     # Summary comparison
     summary = pd.DataFrame([

@@ -58,9 +58,11 @@ Deployed at: _link TBD_
 
 ## Data Sources
 
-- [NC DHHS Public Inspection Records](https://public.cdpehs.com/NCENVPBL/INSPECTION_VIOLATION)
-- [Yelp Fusion API](https://docs.developer.yelp.com/docs/fusion-intro)
-- [Google Places API](https://developers.google.com/maps/documentation/places/web-service/overview)
+| Source | Description | License |
+|---|---|---|
+| [NC DHHS Environmental Health](https://public.cdpehs.com/NCENVPBL/ESTABLISHMENT/ShowESTABLISHMENTTablePage.aspx) | Restaurant inspection scores, grades, and violation records for all 100 NC counties. Collected by NC DHHS and published as public record under NC Public Records Law (G.S. § 132-1). Portal software © Custom Data Processing, Inc. | Public government record |
+| [Yelp Business API (RapidAPI)](https://rapidapi.com/oneapi/api/yelp-business-api) | Business ratings, review counts, and review text matched to inspection records via fuzzy name+address linking. | Yelp Terms of Service |
+| [Google Places API](https://developers.google.com/maps/documentation/places/web-service/overview) | Business ratings, review counts, and review text as a second independent platform signal. | Google Terms of Service |
 
 ## Ethics
 

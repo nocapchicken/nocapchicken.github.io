@@ -1,10 +1,19 @@
 """
 make_dataset.py — Data acquisition for nocapchicken.
 
-Three sources:
-  1. NC DHHS public inspection records (scraped from cdpehs.com)
-  2. Yelp via RapidAPI proxy (business metadata + reviews)
-  3. Google Places API (rating, review count, reviews)
+Data sources:
+  1. NC DHHS public inspection records
+       NC Department of Health and Human Services, Environmental Health Section.
+       Public record under NC Public Records Law (G.S. § 132-1).
+       Accessed via the CDP public inspection portal:
+       https://public.cdpehs.com/NCENVPBL/ESTABLISHMENT/ShowESTABLISHMENTTablePage.aspx
+       Portal software © Custom Data Processing, Inc. — data is public government record.
+
+  2. Yelp business data via RapidAPI Yelp Business API proxy
+       https://rapidapi.com/oneapi/api/yelp-business-api
+
+  3. Google Places API
+       https://developers.google.com/maps/documentation/places/web-service/overview
 
 The linking step uses fuzzy name + address matching (rapidfuzz) to join
 inspection records to Yelp/Google listings — this is the novel data

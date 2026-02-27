@@ -73,8 +73,8 @@ def _load_inspections() -> pd.DataFrame:
 def _load_reviews(filename: str, prefix: str) -> pd.DataFrame:
     """Load a reviews file and filter to high-confidence matches."""
     path = RAW_DIR / filename
-    if not path.exists():
-        logger.warning("%s not found, skipping", path)
+    if not path.exists() or not path.read_text().strip():
+        logger.warning("%s not found or empty, skipping", path)
         return pd.DataFrame()
 
     df = pd.read_csv(path)

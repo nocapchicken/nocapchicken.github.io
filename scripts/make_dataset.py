@@ -1,3 +1,4 @@
+# AI-assisted (Claude Code, claude.ai) — https://claude.ai
 """
 make_dataset.py — Data acquisition for nocapchicken.
 
@@ -29,7 +30,6 @@ NC DHHS page structure (confirmed via inspection):
 
 from __future__ import annotations
 
-import re
 import time
 import logging
 from pathlib import Path
@@ -214,131 +214,13 @@ def _scrape_county_bulk(county_code: int, date_from: str = "", date_to: str = ""
     return records
 
 
-def _parse_data_rows(soup: BeautifulSoup, county_code: int) -> list[dict]:
-    """
-    Extract data rows from a parsed inspection listing page.
-
-    Each data row is a <tr> with 10 <td> cells where the first cell
-    contains the text "Violation Details".
-
-    Column order (0-indexed):
-      0  violation link  (contains ESTABLISHMENT and INSPECTION ids in href)
-      1  inspection_date
-      2  premises_name
-      3  address_full    (street + city + state + zip concatenated)
-      4  state_id
-      5  establishment_type
-      6  final_score
-      7  grade
-      8  inspector_id
-      9  report link
-    """
-    rows = []
-
-    for tr in soup.find_all("tr"):
-        tds = tr.find_all("td")
-        if len(tds) != 10:
-            continue
-
-        texts = [td.get_text(separator=" ", strip=True) for td in tds]
-        if texts[0] != "Violation Details":
-            continue
-
-        # Filter to food/restaurant types only
-        est_type_raw = texts[5]
-        est_type_code = est_type_raw.split(" - ")[0].strip()
-        if est_type_code not in RESTAURANT_TYPE_CODES:
-            continue
-
-        # Extract ESTABLISHMENT and INSPECTION ids from the violation link href
-        violation_href = tds[0].find("a", href=True)
-        establishment_id, inspection_id = _parse_violation_href(
-            violation_href["href"] if violation_href else ""
-        )
-
-        # Parse the concatenated address field: "123 MAIN STCITY, NC 27601"
-        address_raw = texts[3].replace("\xa0", " ")
-        street, city, zipcode = _split_address(address_raw)
-
-        score_raw = texts[6].strip()
-        try:
-            score = float(score_raw)
-        except ValueError:
-            score = None
-
-        rows.append({
-            "county_code": county_code,
-            "establishment_id": establishment_id,
-            "inspection_id": inspection_id,
-            "inspection_date": texts[1],
-            "establishment_name": texts[2],
-            "street_address": street,
-            "city": city,
-            "zip": zipcode,
-            "state_id": texts[4],
-            "establishment_type": est_type_raw,
-            "score": score,
-            "grade": texts[7],
-            "inspector_id": texts[8],
-        })
-
-    return rows
-
-
 def _csv_has_rows(path: Path) -> bool:
     """Return True only if the file exists and contains at least a header + one data row."""
     if not path.exists():
         return False
-    with open(path) as f:
-        lines = [l for l in f if l.strip()]
-    return len(lines) >= 2
-
-
-def _parse_violation_href(href: str) -> tuple[str, str]:
-    """Extract ESTABLISHMENT and INSPECTION ids from a violation detail URL."""
-    est = re.search(r"ESTABLISHMENT=(\d+)", href)
-    ins = re.search(r"INSPECTION=(\d+)", href)
-    return (est.group(1) if est else ""), (ins.group(1) if ins else "")
-
-
-# Longest suffix forms first so STREET matches before ST, BOULEVARD before BLVD, etc.
-_STREET_SUFFIX_RE = re.compile(
-    r"BOULEVARD|STREET|AVENUE|PARKWAY|HIGHWAY|CIRCLE|COURT|PLACE|TRAIL|DRIVE|ROAD"
-    r"|BLVD|PKWY|HWY|CIR|PL|TRL|AVE|LANE|LN|WAY|RD|DR|CT|ST"
-    r"(?:\s+(?:UNIT|STE|SUITE|APT|BLDG|#)\s*[\w-]+)?"
-)
-
-
-def _split_address(address_full: str) -> tuple[str, str, str]:
-    """
-    Split the concatenated address string into street, city, and zip.
-
-    The DHHS site omits the space between street and city, e.g.:
-      "101 N SCOTSWOOD BLVDHILLSBOROUGH, NC 27278"
-      "313 E MAIN STCARRBORO, NC 27510"
-      "200 W FRANKLIN STREET UNIT 130CHAPEL HILL, NC 27516"
-
-    Strategy:
-      1. Split on ", NC " to isolate (street+city) from zip.
-      2. Find the last street-suffix token in the combined string
-         (no word boundary needed — city follows the suffix directly).
-      3. Everything after the suffix end is the city.
-    """
-    parts = re.split(r",\s*NC\s+", address_full, maxsplit=1)
-    if len(parts) != 2:
-        return address_full, "", ""
-
-    street_city, zipcode = parts[0].strip(), parts[1].strip()
-
-    matches = list(_STREET_SUFFIX_RE.finditer(street_city))
-    if matches:
-        last = matches[-1]
-        return street_city[: last.end()].strip(), street_city[last.end() :].strip(), zipcode
-
-    return street_city, "", zipcode
-
-
-
+    with open(path) as fh:
+        non_blank_count = sum(1 for line in fh if line.strip())
+    return non_blank_count >= 2
 
 
 def _build_postback_payload(soup: BeautifulSoup, event_target: str) -> dict:
@@ -411,7 +293,6 @@ def collect_yelp_reviews(
         time.sleep(0.25)
 
     df = pd.DataFrame(results)
-    out_path = output_dir / "yelp_reviews.csv"
     df.to_csv(out_path, index=False)
     logger.info("Wrote %d Yelp records to %s", len(df), out_path)
     return df
@@ -509,7 +390,6 @@ def collect_google_reviews(
         time.sleep(0.1)
 
     df = pd.DataFrame(results)
-    out_path = output_dir / "google_reviews.csv"
     df.to_csv(out_path, index=False)
     logger.info("Wrote %d Google records to %s", len(df), out_path)
     return df
@@ -527,5 +407,9 @@ def _google_search(gmaps, query: str) -> dict | None:
 # ---------------------------------------------------------------------------
 
 def _fuzzy_match_score(name_a: str, name_b: str) -> float:
-    """Return token sort ratio between two business names (0–100)."""
+    """Return token sort ratio between two business names (0-100)."""
     return fuzz.token_sort_ratio(name_a or "", name_b or "")
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)

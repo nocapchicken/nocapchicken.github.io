@@ -177,7 +177,7 @@ def _build_feature_vector(yelp: dict, google: dict) -> tuple[np.ndarray, list[st
 
 
 def _compute_shap(X: np.ndarray, col_names: list[str]) -> list[dict]:
-    """Return top SHAP feature impacts for the prediction."""
+    """Return top 3 SHAP feature impacts for the prediction."""
     explainer = _load_explainer()
     if explainer is None:
         return []
@@ -204,16 +204,7 @@ def _compute_shap(X: np.ndarray, col_names: list[str]) -> list[dict]:
 
 
 def predict(restaurant_name: str, city: str) -> PredictionResult:
-    """
-    Run end-to-end inference for a given restaurant name and NC city.
-
-    Args:
-        restaurant_name: User-supplied restaurant name
-        city: NC city name
-
-    Returns:
-        PredictionResult with all data for the frontend
-    """
+    """Run end-to-end inference for a restaurant, returning all data for the frontend."""
     model = _load_rf_model()
     if model is None:
         return PredictionResult(

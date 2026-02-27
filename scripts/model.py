@@ -37,14 +37,18 @@ TEST_SIZE = 0.2
 TARGET_COL = "grade_encoded"
 
 
+EXCLUDE_COLS = {
+    TARGET_COL, "grade", "combined_reviews", "establishment_name",
+    "address", "yelp_reviews", "google_reviews",
+}
+
+
 def load_data() -> tuple[pd.DataFrame, pd.Series]:
-    """Load the processed feature matrix."""
+    """Load the processed feature matrix, returning (X, y)."""
     df = pd.read_csv(PROCESSED_DIR / "features.csv")
     feature_cols = [
-        c for c in df.columns
-        if c not in [TARGET_COL, "grade", "combined_reviews", "establishment_name",
-                     "address", "yelp_reviews", "google_reviews"]
-        and df[c].dtype in [np.float64, np.int64, float, int]
+        col for col in df.columns
+        if col not in EXCLUDE_COLS and np.issubdtype(df[col].dtype, np.number)
     ]
     X = df[feature_cols].fillna(0)
     y = df[TARGET_COL]
@@ -52,7 +56,7 @@ def load_data() -> tuple[pd.DataFrame, pd.Series]:
 
 
 def evaluate(model, X_test: pd.DataFrame, y_test: pd.Series, name: str) -> dict:
-    """Print and return classification metrics for a fitted model."""
+    """Log classification metrics and save confusion matrix to disk."""
     y_pred = model.predict(X_test)
     report = classification_report(y_test, y_pred, output_dict=True)
     cm = confusion_matrix(y_test, y_pred)
@@ -72,7 +76,7 @@ def evaluate(model, X_test: pd.DataFrame, y_test: pd.Series, name: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def train_naive_baseline(X_train: pd.DataFrame, y_train: pd.Series) -> DummyClassifier:
-    """Majority class baseline -- performance floor all other models must beat."""
+    """Majority-class baseline that all other models must beat."""
     model = DummyClassifier(strategy="most_frequent", random_state=RANDOM_STATE)
     model.fit(X_train, y_train)
     return model
@@ -97,10 +101,11 @@ def train_random_forest(X_train: pd.DataFrame, y_train: pd.Series) -> RandomFore
 
 
 def explain_random_forest(model: RandomForestClassifier, X_test: pd.DataFrame) -> None:
-    """Compute and save SHAP feature importance for the Random Forest."""
+    """Compute and save SHAP feature importance to data/outputs/."""
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_test)
 
+    # Average absolute SHAP across samples; collapse class axis if multiclass
     mean_shap = np.abs(shap_values).mean(axis=0)
     if mean_shap.ndim == 2:
         mean_shap = mean_shap.mean(axis=1)
@@ -190,7 +195,7 @@ def train_distilbert(
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    """Train all three models, evaluate, and persist artifacts."""
+    """Train all three models, evaluate, and save artifacts."""
     logging.basicConfig(level=logging.INFO)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 

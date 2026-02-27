@@ -1,3 +1,4 @@
+// AI-assisted (Claude Code, claude.ai) — https://claude.ai
 /* nocapchicken — app.js */
 
 (function () {
@@ -83,14 +84,16 @@
   }
 
   function renderPlatform(platform, rating, count) {
+    const platformNames = { yelp: 'Yelp', google: 'Google' };
     const starsEl = document.getElementById(`${platform}Stars`);
     const countEl = document.getElementById(`${platform}Count`);
+
     if (rating !== null && rating !== undefined) {
       starsEl.textContent = `${rating.toFixed(1)} ★`;
       countEl.textContent = count ? `${count.toLocaleString()} reviews` : '';
     } else {
       starsEl.textContent = 'N/A';
-      countEl.textContent = 'Not found on ' + (platform === 'yelp' ? 'Yelp' : 'Google');
+      countEl.textContent = `Not found on ${platformNames[platform] || platform}`;
     }
   }
 

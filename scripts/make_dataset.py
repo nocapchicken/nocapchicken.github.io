@@ -30,8 +30,9 @@ NC DHHS page structure (confirmed via inspection):
 
 from __future__ import annotations
 
-import time
+import io
 import logging
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -71,40 +72,29 @@ def collect_inspections(
     force: bool = False,
 ) -> pd.DataFrame:
     """
-    Scrape NC DHHS public inspection records, one file per year.
+    Scrape NC DHHS public inspection records, one CSV per year.
 
-    Each year is saved as inspections_{year}.csv. Years whose file already
-    exists are skipped unless force=True. The current year is always
-    re-fetched (data is still accumulating).
-
-    After collection, all year files are merged into inspections.csv.
-
-    Args:
-        output_dir: Directory to write per-year files and inspections.csv
-        county_codes: List of NC county integer codes to collect
-        years: Years to collect. Defaults to 2020 through current year.
-        force: Re-scrape all years, including ones already on disk.
-
-    Returns:
-        Merged DataFrame of all collected inspection records
+    Completed years are skipped unless force=True. The current year is
+    always re-fetched if the file is stale (not updated today).
     """
     import datetime
     if years is None:
         years = list(range(2020, datetime.date.today().year + 1))
 
+    today = datetime.date.today()
+
     for year in years:
         year_path = output_dir / f"inspections_{year}.csv"
+
         if _csv_has_rows(year_path) and not force:
-            is_current = year == datetime.date.today().year
-            if is_current:
-                last_modified = datetime.date.fromtimestamp(year_path.stat().st_mtime)
-                if last_modified >= datetime.date.today():
-                    logger.info("inspections_%d.csv already fetched today — skipping.", year)
-                    continue
-                logger.info("inspections_%d.csv is stale (last fetched %s) — re-fetching.", year, last_modified)
-            else:
+            if year != today.year:
                 logger.info("inspections_%d.csv exists — skipping.", year)
                 continue
+            last_modified = datetime.date.fromtimestamp(year_path.stat().st_mtime)
+            if last_modified >= today:
+                logger.info("inspections_%d.csv already fetched today — skipping.", year)
+                continue
+            logger.info("inspections_%d.csv is stale (last fetched %s) — re-fetching.", year, last_modified)
 
         logger.info("Fetching %d inspection records...", year)
         records = []
@@ -124,7 +114,6 @@ def collect_inspections(
         logger.info("  → %d records written to %s", len(df_year), year_path)
 
     logger.info("Collection done. Run build_features.py to merge year files.")
-    # Return whatever year files exist on disk so callers have something useful
     year_files = sorted(output_dir.glob("inspections_*.csv"))
     if not year_files:
         return pd.DataFrame()
@@ -132,20 +121,7 @@ def collect_inspections(
 
 
 def _scrape_county_bulk(county_code: int, date_from: str = "", date_to: str = "") -> list[dict]:
-    """
-    Fetch all inspection records for one county via the CSV export button.
-
-    The site's CSV export returns all matching records regardless of page size,
-    avoiding the need to paginate. Address fields arrive pre-split (city, zip
-    are separate columns) so no regex parsing is required.
-
-    Args:
-        county_code: NC DHHS county integer code
-        date_from: Inspection date lower bound (MM/DD/YYYY) — always set per year
-        date_to: Inspection date upper bound (MM/DD/YYYY)
-    """
-    import io
-
+    """Fetch all inspection records for one county via the site's CSV export."""
     session = requests.Session()
     session.headers.update(HEADERS)
 
@@ -215,12 +191,17 @@ def _scrape_county_bulk(county_code: int, date_from: str = "", date_to: str = ""
 
 
 def _csv_has_rows(path: Path) -> bool:
-    """Return True only if the file exists and contains at least a header + one data row."""
+    """Return True if the file has at least a header and one data row."""
     if not path.exists():
         return False
     with open(path) as fh:
-        non_blank_count = sum(1 for line in fh if line.strip())
-    return non_blank_count >= 2
+        non_blank = 0
+        for line in fh:
+            if line.strip():
+                non_blank += 1
+                if non_blank >= 2:
+                    return True
+    return False
 
 
 def _build_postback_payload(soup: BeautifulSoup, event_target: str) -> dict:
@@ -247,20 +228,7 @@ def collect_yelp_reviews(
     max_per_business: int = 3,
     force: bool = False,
 ) -> pd.DataFrame:
-    """
-    Match inspection records to Yelp businesses and fetch review data
-    via the RapidAPI Yelp Business API proxy.
-
-    Args:
-        api_key: RapidAPI key (RAPIDAPI_KEY in .env)
-        inspections_path: Path to inspections.csv
-        output_dir: Directory to write yelp_reviews.csv
-        max_per_business: Max reviews to store per business
-        force: Re-fetch even if yelp_reviews.csv already exists
-
-    Returns:
-        DataFrame with Yelp business metadata and reviews
-    """
+    """Match inspection records to Yelp businesses and fetch review data via RapidAPI."""
     out_path = output_dir / "yelp_reviews.csv"
     if _csv_has_rows(out_path) and not force:
         logger.info("yelp_reviews.csv already exists — skipping. Use force=True to re-fetch.")
@@ -338,18 +306,7 @@ def collect_google_reviews(
     output_dir: Path,
     force: bool = False,
 ) -> pd.DataFrame:
-    """
-    Match inspection records to Google Places and fetch review data.
-
-    Args:
-        api_key: Google Places API key
-        inspections_path: Path to inspections.csv
-        output_dir: Directory to write google_reviews.csv
-        force: Re-fetch even if google_reviews.csv already exists
-
-    Returns:
-        DataFrame with Google Places metadata and reviews
-    """
+    """Match inspection records to Google Places and fetch review data."""
     out_path = output_dir / "google_reviews.csv"
     if _csv_has_rows(out_path) and not force:
         logger.info("google_reviews.csv already exists — skipping. Use force=True to re-fetch.")

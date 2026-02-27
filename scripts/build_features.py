@@ -29,15 +29,7 @@ MATCH_THRESHOLD = 70
 
 
 def merge_inspection_years(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
-    """
-    Merge all per-year inspection files into a single inspections.csv.
-
-    Reads every inspections_{year}.csv in raw_dir, deduplicates on
-    (state_id, inspection_date), and writes inspections.csv.
-
-    Returns:
-        Merged DataFrame
-    """
+    """Merge per-year inspection CSVs into a single inspections.csv, deduplicating on (state_id, inspection_date)."""
     year_files = sorted(raw_dir.glob("inspections_*.csv"))
     if not year_files:
         raise FileNotFoundError(
@@ -59,15 +51,7 @@ def merge_inspection_years(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
 
 
 def build_features() -> pd.DataFrame:
-    """
-    Full feature engineering pipeline.
-
-    Merges per-year inspection files first, then joins review data
-    and engineers features.
-
-    Returns:
-        DataFrame with one row per matched establishment, ready for modeling.
-    """
+    """Run the full feature engineering pipeline and write data/processed/features.csv."""
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
     merge_inspection_years(RAW_DIR)
@@ -142,7 +126,7 @@ def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _encode_target(df: pd.DataFrame) -> pd.DataFrame:
-    """Filter to valid grades (A/B/C) and add a label-encoded target column."""
+    """Filter to valid grades (A/B/C) and add label-encoded target column."""
     valid_grades = ["A", "B", "C"]
     df = df[df["grade"].isin(valid_grades)].copy()
 

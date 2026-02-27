@@ -1,12 +1,9 @@
+# AI-assisted (Claude Code, claude.ai) — https://claude.ai
 """
-Setup script: acquire raw data from NC inspection records, Yelp, and Google Places.
-
-Inspection data is stored one file per year (inspections_{year}.csv).
-Years already on disk are skipped; the current year is always re-fetched.
-Review CSVs are skipped if they already exist unless --force is passed.
+setup.py — Data acquisition pipeline for nocapchicken.
 
 Usage:
-    python3 setup.py                        # collect 2020–now, skip existing years
+    python3 setup.py                        # collect 2020-now, skip existing years
     python3 setup.py --years 2023 2024      # only collect specific years
     python3 setup.py --force                # re-run all steps including existing years
 """
@@ -49,7 +46,7 @@ def main() -> None:
     raw_dir = ROOT / "data" / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
 
-    years_label = ", ".join(str(y) for y in (args.years or ["2020–now"]))
+    years_label = ", ".join(str(y) for y in args.years) if args.years else "2020-now"
     print(f"Step 1/3: Collecting NC inspection records ({years_label})...")
     collect_inspections(output_dir=raw_dir, years=args.years, force=args.force)
 

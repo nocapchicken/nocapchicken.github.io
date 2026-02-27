@@ -1,7 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
 """
-make_dataset.py — Data acquisition for nocapchicken.
-
 Data sources:
   1. NC DHHS public inspection records
        NC Department of Health and Human Services, Environmental Health Section.
@@ -191,7 +189,6 @@ def _scrape_county_bulk(county_code: int, date_from: str = "", date_to: str = ""
 
 
 def _csv_has_rows(path: Path) -> bool:
-    """Return True if the file has at least a header and one data row."""
     if not path.exists():
         return False
     with open(path) as fh:
@@ -267,7 +264,6 @@ def collect_yelp_reviews(
 
 
 def _yelp_search(name: str, address: str, city: str, headers: dict) -> dict | None:
-    """Search Yelp for a single business by name and location (RapidAPI)."""
     params = {"term": name, "location": f"{address}, {city}, NC", "limit": "1"}
     resp = requests.get(
         "https://yelp-business-api.p.rapidapi.com/search",
@@ -283,7 +279,6 @@ def _yelp_search(name: str, address: str, city: str, headers: dict) -> dict | No
 
 
 def _yelp_reviews(business_id: str, headers: dict, limit: int = 3) -> list[dict]:
-    """Fetch reviews for a Yelp business (RapidAPI)."""
     resp = requests.get(
         "https://yelp-business-api.p.rapidapi.com/reviews",
         headers=headers,
@@ -353,7 +348,6 @@ def collect_google_reviews(
 
 
 def _google_search(gmaps, query: str) -> dict | None:
-    """Search Google Places for a single establishment."""
     result = gmaps.find_place(query, input_type="textquery", fields=["place_id", "name"])
     candidates = result.get("candidates", [])
     return candidates[0] if candidates else None

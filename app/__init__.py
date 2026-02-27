@@ -1,6 +1,4 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
-"""Flask application factory for nocapchicken."""
-
 from flask import Flask
 
 from .routes import bp

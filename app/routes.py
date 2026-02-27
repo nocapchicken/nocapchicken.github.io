@@ -1,6 +1,4 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
-"""Routes for the nocapchicken Flask app."""
-
 from __future__ import annotations
 
 import dataclasses
@@ -16,7 +14,6 @@ bp = Blueprint("main", __name__)
 
 @bp.get("/")
 def index():
-    """Serve the main search page."""
     return render_template("index.html")
 
 

@@ -1,14 +1,9 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
 """
-model.py — Train and evaluate all three required modeling approaches.
-
-Models:
+Three required modeling approaches:
   1. Naive baseline     — majority class classifier
   2. Classical ML       — Random Forest with SHAP explainability
   3. Deep learning      — DistilBERT fine-tuned on combined review text
-
-Usage:
-    python scripts/model.py
 """
 
 from __future__ import annotations
@@ -44,7 +39,7 @@ EXCLUDE_COLS = {
 
 
 def load_data() -> tuple[pd.DataFrame, pd.Series]:
-    """Load the processed feature matrix, returning (X, y)."""
+    """Load the processed feature matrix."""
     df = pd.read_csv(PROCESSED_DIR / "features.csv")
     feature_cols = [
         col for col in df.columns
@@ -56,7 +51,7 @@ def load_data() -> tuple[pd.DataFrame, pd.Series]:
 
 
 def evaluate(model, X_test: pd.DataFrame, y_test: pd.Series, name: str) -> dict:
-    """Log classification metrics and save confusion matrix to disk."""
+    """Save confusion matrix to data/outputs/."""
     y_pred = model.predict(X_test)
     report = classification_report(y_test, y_pred, output_dict=True)
     cm = confusion_matrix(y_test, y_pred)
@@ -87,7 +82,7 @@ def train_naive_baseline(X_train: pd.DataFrame, y_train: pd.Series) -> DummyClas
 # ---------------------------------------------------------------------------
 
 def train_random_forest(X_train: pd.DataFrame, y_train: pd.Series) -> RandomForestClassifier:
-    """Random Forest with grid-searched hyperparameters."""
+    """Returns best_estimator_ from 5-fold grid search (f1_macro)."""
     param_grid = {
         "n_estimators": [100, 200],
         "max_depth": [None, 10, 20],
@@ -101,7 +96,7 @@ def train_random_forest(X_train: pd.DataFrame, y_train: pd.Series) -> RandomFore
 
 
 def explain_random_forest(model: RandomForestClassifier, X_test: pd.DataFrame) -> None:
-    """Compute and save SHAP feature importance to data/outputs/."""
+    """Save SHAP feature importance to data/outputs/."""
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_test)
 
@@ -133,7 +128,7 @@ def train_distilbert(
     epochs: int = 3,
     batch_size: int = 16,
 ):
-    """Fine-tune DistilBERT on combined review text for grade classification."""
+    """Fine-tune DistilBERT for grade classification."""
     from transformers import (
         DistilBertTokenizerFast,
         DistilBertForSequenceClassification,
@@ -195,7 +190,7 @@ def train_distilbert(
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    """Train all three models, evaluate, and save artifacts."""
+    """Train all models, save artifacts to models/, metrics to data/outputs/."""
     logging.basicConfig(level=logging.INFO)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 

@@ -1,13 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
-"""
-build_features.py — Feature engineering pipeline for nocapchicken.
-
-Reads raw inspection + review data, merges them via fuzzy matching,
-and produces a clean feature matrix ready for modeling.
-
-Usage:
-    python scripts/build_features.py
-"""
+"""Merges inspection + review data via fuzzy matching into a feature matrix."""
 
 from __future__ import annotations
 
@@ -29,7 +21,7 @@ MATCH_THRESHOLD = 70
 
 
 def merge_inspection_years(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
-    """Merge per-year inspection CSVs into a single inspections.csv, deduplicating on (state_id, inspection_date)."""
+    """Deduplicates on (state_id, inspection_date) and writes inspections.csv."""
     year_files = sorted(raw_dir.glob("inspections_*.csv"))
     if not year_files:
         raise FileNotFoundError(
@@ -51,7 +43,7 @@ def merge_inspection_years(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
 
 
 def build_features() -> pd.DataFrame:
-    """Run the full feature engineering pipeline and write data/processed/features.csv."""
+    """Write data/processed/features.csv."""
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
     merge_inspection_years(RAW_DIR)
@@ -71,7 +63,6 @@ def build_features() -> pd.DataFrame:
 
 
 def _load_inspections() -> pd.DataFrame:
-    """Load and clean raw inspection records."""
     df = pd.read_csv(RAW_DIR / "inspections.csv")
     df["score"] = pd.to_numeric(df["score"], errors="coerce")
     df = df.dropna(subset=["score"])
@@ -107,7 +98,6 @@ def _merge(inspections: pd.DataFrame, yelp: pd.DataFrame, google: pd.DataFrame) 
 
 
 def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Compute derived features from raw columns."""
     # Rating delta: platform agreement signal
     if "yelp_rating" in df.columns and "google_rating" in df.columns:
         df["rating_delta"] = (df["yelp_rating"] - df["google_rating"]).abs()

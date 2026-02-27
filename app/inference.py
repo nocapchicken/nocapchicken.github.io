@@ -1,10 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
-"""
-inference.py — Model loading and prediction for the nocapchicken web app.
-
-Loads trained artifacts once at startup and exposes a single predict() function.
-No training happens here.
-"""
+"""Loads trained artifacts at startup. No training happens here (APP1)."""
 
 from __future__ import annotations
 
@@ -50,7 +45,6 @@ class PredictionResult:
 
 @lru_cache(maxsize=1)
 def _load_rf_model():
-    """Load the Random Forest model (cached after first call)."""
     path = MODELS_DIR / "random_forest.pkl"
     if not path.exists():
         logger.warning("Random Forest model not found at %s", path)
@@ -60,7 +54,6 @@ def _load_rf_model():
 
 @lru_cache(maxsize=1)
 def _load_explainer():
-    """Load the SHAP TreeExplainer (cached after first call)."""
     model = _load_rf_model()
     if model is None:
         return None
@@ -150,10 +143,7 @@ def _fetch_google(name: str, city: str) -> dict:
 
 
 def _build_feature_vector(yelp: dict, google: dict) -> tuple[np.ndarray, list[str]]:
-    """
-    Construct the numeric feature vector expected by the Random Forest.
-    Must match the columns produced by build_features.py.
-    """
+    """Must match the columns produced by build_features.py."""
     yelp_rating = yelp.get("rating")
     google_rating = google.get("rating")
     yelp_count = yelp.get("review_count", 0) or 0
@@ -204,7 +194,7 @@ def _compute_shap(X: np.ndarray, col_names: list[str]) -> list[dict]:
 
 
 def predict(restaurant_name: str, city: str) -> PredictionResult:
-    """Run end-to-end inference for a restaurant, returning all data for the frontend."""
+    """Run end-to-end inference for a restaurant."""
     model = _load_rf_model()
     if model is None:
         return PredictionResult(

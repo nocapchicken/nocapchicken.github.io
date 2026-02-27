@@ -69,7 +69,6 @@ def build_features() -> pd.DataFrame:
     """
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Merge per-year files → data/raw/inspections.csv before loading
     merge_inspection_years(RAW_DIR)
 
     inspections = _load_inspections()
@@ -104,8 +103,6 @@ def _load_reviews(filename: str, prefix: str) -> pd.DataFrame:
 
     df = pd.read_csv(path)
     df = df[df["match_score"] >= MATCH_THRESHOLD].copy()
-    # Rename platform-specific columns to avoid collisions on merge
-    df = df.rename(columns={c: c for c in df.columns})
     return df
 
 
@@ -126,7 +123,7 @@ def _merge(inspections: pd.DataFrame, yelp: pd.DataFrame, google: pd.DataFrame) 
 
 def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     """Compute derived features from raw columns."""
-    # Platform agreement: difference between Yelp and Google ratings
+    # Rating delta: platform agreement signal
     if "yelp_rating" in df.columns and "google_rating" in df.columns:
         df["rating_delta"] = (df["yelp_rating"] - df["google_rating"]).abs()
 

@@ -142,16 +142,28 @@ def _fetch_google(name: str, city: str) -> dict:
         return {}
 
 
-def _build_feature_vector(yelp: dict, google: dict) -> tuple[np.ndarray, list[str]]:
+@dataclass
+class _FeatureData:
+    """Feature vector plus the raw values needed by PredictionResult."""
+    X: np.ndarray
+    col_names: list[str]
+    yelp_rating: float | None
+    google_rating: float | None
+    rating_delta: float | None
+
+
+def _build_feature_vector(yelp: dict, google: dict) -> _FeatureData:
     """Must match the columns produced by build_features.py."""
     yelp_rating = yelp.get("rating")
     google_rating = google.get("rating")
     yelp_count = yelp.get("review_count", 0) or 0
     google_count = google.get("review_count", 0) or 0
 
-    rating_delta = None
-    if yelp_rating is not None and google_rating is not None:
-        rating_delta = abs(yelp_rating - google_rating)
+    rating_delta = (
+        abs(yelp_rating - google_rating)
+        if yelp_rating is not None and google_rating is not None
+        else None
+    )
 
     features = {
         "yelp_rating": yelp_rating or 0.0,
@@ -161,9 +173,13 @@ def _build_feature_vector(yelp: dict, google: dict) -> tuple[np.ndarray, list[st
         "google_review_count_log": np.log1p(google_count),
     }
 
-    X = np.array(list(features.values())).reshape(1, -1)
-    col_names = list(features.keys())
-    return X, col_names
+    return _FeatureData(
+        X=np.array(list(features.values())).reshape(1, -1),
+        col_names=list(features.keys()),
+        yelp_rating=yelp_rating,
+        google_rating=google_rating,
+        rating_delta=round(rating_delta, 2) if rating_delta is not None else None,
+    )
 
 
 def _compute_shap(X: np.ndarray, col_names: list[str], pred_class: int) -> list[dict]:
@@ -213,44 +229,34 @@ def predict(restaurant_name: str, city: str) -> PredictionResult:
     yelp = _fetch_yelp(restaurant_name, city)
     google = _fetch_google(restaurant_name, city)
 
-    X, col_names = _build_feature_vector(yelp, google)
-    proba = model.predict_proba(X)[0]
+    feat = _build_feature_vector(yelp, google)
+    proba = model.predict_proba(feat.X)[0]
     pred_class = int(np.argmax(proba))
     confidence = float(proba[pred_class])
     predicted_grade = GRADE_LABELS.get(pred_class, "?")
-    grade_color = GRADE_COLORS.get(predicted_grade, "gray")
 
-    shap_features = _compute_shap(X, col_names, pred_class)
-
-    yelp_rating = yelp.get("rating")
-    google_rating = google.get("rating")
-
-    rating_delta = (
-        round(abs(yelp_rating - google_rating), 2)
-        if yelp_rating is not None and google_rating is not None
-        else None
-    )
+    shap_features = _compute_shap(feat.X, feat.col_names, pred_class)
 
     # Divergence flag: high platform ratings but model predicts C
-    platform_ratings = [r for r in (yelp_rating, google_rating) if r is not None]
-    avg_platform_rating = np.mean(platform_ratings) if platform_ratings else None
+    platform_ratings = [r for r in (feat.yelp_rating, feat.google_rating) if r is not None]
+    avg_platform = np.mean(platform_ratings) if platform_ratings else None
     divergence_warning = (
         predicted_grade == "C"
-        and avg_platform_rating is not None
-        and avg_platform_rating >= 4.0
+        and avg_platform is not None
+        and avg_platform >= 4.0
     )
 
     return PredictionResult(
         restaurant_name=restaurant_name,
         location=city,
         predicted_grade=predicted_grade,
-        grade_color=grade_color,
+        grade_color=GRADE_COLORS.get(predicted_grade, "gray"),
         confidence=confidence,
-        yelp_rating=yelp_rating,
+        yelp_rating=feat.yelp_rating,
         yelp_review_count=yelp.get("review_count"),
-        google_rating=google_rating,
+        google_rating=feat.google_rating,
         google_review_count=google.get("review_count"),
-        rating_delta=rating_delta,
+        rating_delta=feat.rating_delta,
         top_shap_features=shap_features,
         divergence_warning=divergence_warning,
         sample_reviews=(yelp.get("reviews", []) + google.get("reviews", []))[:3],

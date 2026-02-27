@@ -86,8 +86,16 @@ def collect_inspections(
     for year in years:
         year_path = output_dir / f"inspections_{year}.csv"
         if year_path.exists() and year_path.stat().st_size > 0 and not force:
-            logger.info("inspections_%d.csv exists — skipping. Use --force or --years %d to re-fetch.", year, year)
-            continue
+            is_current = year == datetime.date.today().year
+            if is_current:
+                last_modified = datetime.date.fromtimestamp(year_path.stat().st_mtime)
+                if last_modified >= datetime.date.today():
+                    logger.info("inspections_%d.csv already fetched today — skipping.", year)
+                    continue
+                logger.info("inspections_%d.csv is stale (last fetched %s) — re-fetching.", year, last_modified)
+            else:
+                logger.info("inspections_%d.csv exists — skipping.", year)
+                continue
 
         logger.info("Fetching %d inspection records...", year)
         records = []

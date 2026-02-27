@@ -1,0 +1,13 @@
+# Production dependencies for the Flask inference app only.
+# Training dependencies (torch, transformers, etc.) live in requirements.txt.
+flask>=3.0.0
+flask-cors>=4.0.0
+gunicorn>=21.2.0
+joblib>=1.3.0
+numpy>=1.26.0
+scikit-learn>=1.3.0
+shap>=0.44.0
+requests>=2.31.0
+googlemaps>=4.10.0
+rapidfuzz>=3.5.0
+python-dotenv>=1.0.0

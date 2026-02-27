@@ -6,7 +6,7 @@ import logging
 
 from flask import Blueprint, jsonify, render_template, request
 
-from .inference import predict
+from .inference import predict, suggest_restaurants
 
 logger = logging.getLogger(__name__)
 bp = Blueprint("main", __name__)
@@ -33,6 +33,14 @@ def api_predict():
     except Exception as exc:
         logger.exception("Prediction failed for '%s' in '%s'", name, city)
         return jsonify({"error": str(exc)}), 500
+
+
+@bp.get("/api/suggest")
+def api_suggest():
+    """Return restaurant name suggestions. Expects ?name=str&city=str."""
+    name = request.args.get("name", "").strip()
+    city = request.args.get("city", "").strip()
+    return jsonify(suggest_restaurants(name, city))
 
 
 @bp.get("/health")

@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: nocapchicken
+    runtime: python
+    buildCommand: pip install -r requirements-app.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 "app:create_app()"
+    envVars:
+      - key: RAPIDAPI_KEY
+        sync: false        # set manually in Render dashboard
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false        # set manually in Render dashboard

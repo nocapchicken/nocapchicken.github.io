@@ -1,5 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
-"""Loads trained artifacts at startup. No training happens here (APP1)."""
+"""Inference-only pipeline. Trained artifacts load on first request (APP1)."""
 
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ from pathlib import Path
 import joblib
 import numpy as np
 import requests
-import shap
 from rapidfuzz import fuzz
 
 logger = logging.getLogger(__name__)
@@ -54,6 +53,7 @@ def _load_rf_model():
 
 @lru_cache(maxsize=1)
 def _load_explainer():
+    import shap
     model = _load_rf_model()
     if model is None:
         return None
@@ -129,12 +129,12 @@ def _fetch_google(name: str, city: str) -> dict:
             candidates[0]["place_id"],
             fields=["name", "rating", "user_ratings_total", "reviews"]
         )
-        r = details.get("result", {})
-        reviews = [rev["text"] for rev in r.get("reviews", [])]
+        place = details.get("result", {})
+        reviews = [rev["text"] for rev in place.get("reviews", [])]
 
         return {
-            "rating": r.get("rating"),
-            "review_count": r.get("user_ratings_total"),
+            "rating": place.get("rating"),
+            "review_count": place.get("user_ratings_total"),
             "reviews": reviews,
         }
     except Exception as exc:
@@ -206,6 +206,28 @@ def _compute_shap(X: np.ndarray, col_names: list[str], pred_class: int) -> list[
         return []
 
 
+def suggest_restaurants(name: str, city: str) -> list[str]:
+    """Return up to 5 restaurant name suggestions from Yelp."""
+    api_key = os.getenv("RAPIDAPI_KEY", "")
+    if not api_key or len(name) < 2:
+        return []
+    headers = {
+        "x-rapidapi-key": api_key,
+        "x-rapidapi-host": "yelp-business-api.p.rapidapi.com",
+    }
+    try:
+        resp = requests.get(
+            "https://yelp-business-api.p.rapidapi.com/search",
+            headers=headers,
+            params={"term": name, "location": f"{city or 'NC'}, NC", "limit": "5"},
+            timeout=5,
+        )
+        return [b["name"] for b in resp.json().get("businesses", []) if b.get("name")]
+    except Exception as exc:
+        logger.warning("Suggest lookup failed: %s", exc)
+        return []
+
+
 def predict(restaurant_name: str, city: str) -> PredictionResult:
     """Run end-to-end inference for a restaurant."""
     model = _load_rf_model()
@@ -238,13 +260,9 @@ def predict(restaurant_name: str, city: str) -> PredictionResult:
     shap_features = _compute_shap(feat.X, feat.col_names, pred_class)
 
     # Divergence flag: high platform ratings but model predicts C
-    platform_ratings = [r for r in (feat.yelp_rating, feat.google_rating) if r is not None]
-    avg_platform = np.mean(platform_ratings) if platform_ratings else None
-    divergence_warning = (
-        predicted_grade == "C"
-        and avg_platform is not None
-        and avg_platform >= 4.0
-    )
+    available_ratings = [r for r in (feat.yelp_rating, feat.google_rating) if r is not None]
+    avg_rating = sum(available_ratings) / len(available_ratings) if available_ratings else None
+    divergence_warning = predicted_grade == "C" and avg_rating is not None and avg_rating >= 4.0
 
     return PredictionResult(
         restaurant_name=restaurant_name,

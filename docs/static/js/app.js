@@ -1,8 +1,8 @@
 // AI-assisted (Claude Code, claude.ai) — https://claude.ai
-/* nocapchicken — app.js */
-
 (function () {
   'use strict';
+
+  const API_BASE = 'https://nocapchicken-github-io.onrender.com';
 
   const form        = document.getElementById('searchForm');
   const btnSearch   = form.querySelector('.btn-search');
@@ -10,8 +10,6 @@
   const resultCard  = document.getElementById('resultCard');
   const resultError = document.getElementById('resultError');
   const errorMsg    = document.getElementById('errorMessage');
-
-  // ── Form submit ─────────────────────────────────────────────
 
   // ── Restaurant suggestions ──────────────────────────────────
 
@@ -27,7 +25,7 @@
       if (name.length < 2) { suggestionList.innerHTML = ''; return; }
       try {
         const params = new URLSearchParams({ name, city });
-        const res  = await fetch(`/api/suggest?${params}`);
+        const res  = await fetch(`${API_BASE}/api/suggest?${params}`);
         const names = await res.json();
         suggestionList.innerHTML = names.map(n => `<option value="${escHtml(n)}">`).join('');
       } catch (_) {}
@@ -44,7 +42,7 @@
     hideAll();
 
     try {
-      const res = await fetch('/api/predict', {
+      const res = await fetch(`${API_BASE}/api/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, city }),
@@ -62,41 +60,32 @@
     }
   });
 
-  // ── Render result ───────────────────────────────────────────
-
   function renderResult(d) {
-    // Grade pill
     const pill = document.getElementById('gradePill');
     pill.textContent = d.predicted_grade;
     pill.className = `grade-pill grade-${d.predicted_grade === '?' ? 'unknown' : d.predicted_grade}`;
 
-    // Restaurant meta
     document.getElementById('gradeName').textContent = d.restaurant_name;
     document.getElementById('gradeLocation').textContent = `${d.location}, NC`;
     document.getElementById('confidenceValue').textContent =
       d.confidence > 0 ? `${Math.round(d.confidence * 100)}%` : '—';
 
-    // Divergence warning
     const divAlert = document.getElementById('divergenceAlert');
     divAlert.hidden = !d.divergence_warning;
 
-    // Platform ratings
     renderPlatform('yelp', d.yelp_rating, d.yelp_review_count);
     renderPlatform('google', d.google_rating, d.google_review_count);
 
     const deltaCard = document.getElementById('deltaCard');
     const deltaVal  = document.getElementById('deltaValue');
-    if (d.rating_delta !== null && d.rating_delta !== undefined) {
+    if (d.rating_delta != null) {
       deltaVal.textContent = d.rating_delta.toFixed(1);
       deltaCard.style.display = '';
     } else {
       deltaCard.style.display = 'none';
     }
 
-    // SHAP
     renderShap(d.top_shap_features);
-
-    // Sample reviews
     renderReviews(d.sample_reviews);
 
     resultCard.hidden = false;
@@ -109,7 +98,7 @@
     const starsEl = document.getElementById(`${platform}Stars`);
     const countEl = document.getElementById(`${platform}Count`);
 
-    if (rating !== null && rating !== undefined) {
+    if (rating != null) {
       starsEl.textContent = `${rating.toFixed(1)} ★`;
       countEl.textContent = count ? `${count.toLocaleString()} reviews` : '';
     } else {
@@ -170,8 +159,6 @@
 
     section.hidden = false;
   }
-
-  // ── UI helpers ──────────────────────────────────────────────
 
   function showError(msg) {
     errorMsg.textContent = msg;

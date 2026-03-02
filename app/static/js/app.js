@@ -194,7 +194,6 @@
   function setLoading(on) {
     btnSearch.classList.toggle('loading', on);
     btnSearch.disabled = on;
-    btnSearch.style.position = on ? 'relative' : '';
   }
 
   function escHtml(str) {

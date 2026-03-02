@@ -192,11 +192,13 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   white-space: nowrap;
   transition: opacity .15s, transform .1s;
   height: 46px;
   align-self: flex-end;
+  position: relative;
 }
 
 .btn-search:hover { opacity: .85; }

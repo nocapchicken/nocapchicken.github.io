@@ -141,12 +141,12 @@
       const label = f.feature.replace(/_/g, ' ').replace(/ log$/, ' (log)');
 
       list.insertAdjacentHTML('beforeend', `
-        <li class="shap-item">
-          <span class="shap-feature">${label}</span>
-          <div class="shap-bar-wrap">
+        <li class="shap-item" aria-label="${label}: ${dir} impact, ${sign}${f.impact.toFixed(3)}">
+          <span class="shap-feature" aria-hidden="true">${label}</span>
+          <div class="shap-bar-wrap" aria-hidden="true">
             <div class="shap-bar ${dir}" style="width:${pct}%"></div>
           </div>
-          <span class="shap-impact">${sign}${f.impact.toFixed(3)}</span>
+          <span class="shap-impact" aria-hidden="true">${sign}${f.impact.toFixed(3)}</span>
         </li>
       `);
     });
@@ -194,6 +194,27 @@
   function setLoading(on) {
     btnSearch.classList.toggle('loading', on);
     btnSearch.disabled = on;
+    btnSearch.setAttribute('aria-label', on ? 'Loading results' : 'Check it');
+    resultSec.setAttribute('aria-busy', on ? 'true' : 'false');
+  }
+
+  // ── Theme toggle ─────────────────────────────────────────
+
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    const syncThemeBtn = () => {
+      const dark = document.documentElement.dataset.theme === 'dark';
+      themeBtn.setAttribute('aria-pressed', String(dark));
+      themeBtn.setAttribute('aria-label', dark ? 'Disable dark mode' : 'Enable dark mode');
+    };
+    // Sync only when dark mode was restored; HTML defaults cover the light-mode case
+    if (document.documentElement.dataset.theme === 'dark') syncThemeBtn();
+    themeBtn.addEventListener('click', () => {
+      const nowDark = document.documentElement.dataset.theme !== 'dark';
+      document.documentElement.dataset.theme = nowDark ? 'dark' : 'light';
+      localStorage.setItem('theme', nowDark ? 'dark' : 'light');
+      syncThemeBtn();
+    });
   }
 
   function escHtml(str) {

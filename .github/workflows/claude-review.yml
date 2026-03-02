@@ -1,0 +1,45 @@
+name: Claude Code PR Review
+
+# Manual trigger only — run when you actually want a substantive review,
+# not on every push. Invoke via Actions → "Run workflow".
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to review"
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: anthropics/claude-code-action@28f83620103c48a57093dcc2837eec89e036bb9f
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_sticky_comment: true
+          direct_prompt: |
+            Review PR #${{ github.event.inputs.pr_number }} for the nocapchicken ML project against `REQUIREMENTS_CHECKLIST.md`.
+
+            Check:
+            - **Rubric compliance** — flag violations by ID (e.g. CQ5, GIT6)
+            - **Code quality** — functions/classes only, docstrings on public functions, AI attribution (CQ5/CQ6)
+            - **Security** — no `.env` committed (GIT6), no hardcoded secrets
+            - **ML correctness** — no training in `app/` (APP1), feature vector matches `build_features.py`
+            - **App stability** — Flask routes handle errors and API failures gracefully
+
+            Deduction triggers: experiments not tied to a decision (−5), vague error analysis (−5), PR without summary (−5), "LGTM" review (−2).
+
+            Format:
+            - **Summary** (2–3 sentences)
+            - **Checklist items affected**
+            - **Issues** (blocking, numbered)
+            - **Suggestions** (non-blocking, numbered)
+            - **Verdict**: Approve / Request Changes / Comment

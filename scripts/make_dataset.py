@@ -41,6 +41,8 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
+ROOT = Path(__file__).parent.parent
+
 # NC county codes 1–100 (DHHS uses sequential integers)
 NC_COUNTY_CODES = list(range(1, 101))
 
@@ -65,12 +67,7 @@ def collect_inspections(
     years: list[int] | None = None,
     force: bool = False,
 ) -> pd.DataFrame:
-    """
-    Scrape NC DHHS public inspection records, one CSV per year.
-
-    Completed years are skipped unless force=True. The current year is
-    always re-fetched if the file is stale (not updated today).
-    """
+    """Completed years are skipped unless force=True. Current year re-fetches if stale."""
     import datetime
     if years is None:
         years = list(range(2020, datetime.date.today().year + 1))
@@ -217,7 +214,7 @@ def collect_yelp_reviews(
     max_per_business: int = 3,
     force: bool = False,
 ) -> pd.DataFrame:
-    """Match inspection records to Yelp businesses and fetch review data via RapidAPI."""
+    """Fuzzy-match inspections to Yelp businesses and fetch reviews."""
     out_path = output_dir / "yelp_reviews.csv"
     if _csv_has_rows(out_path) and not force:
         logger.info("yelp_reviews.csv already exists — skipping. Use force=True to re-fetch.")
@@ -237,7 +234,7 @@ def collect_yelp_reviews(
 
         reviews = _yelp_reviews(business["id"], headers, limit=max_per_business)
         results.append({
-            "inspection_id": row.name,
+            "state_id": row["state_id"],
             "establishment_name": row["establishment_name"],
             "yelp_id": business["id"],
             "yelp_name": business["name"],
@@ -289,7 +286,7 @@ def collect_google_reviews(
     output_dir: Path,
     force: bool = False,
 ) -> pd.DataFrame:
-    """Match inspection records to Google Places and fetch review data."""
+    """Fuzzy-match inspections to Google Places and fetch reviews."""
     out_path = output_dir / "google_reviews.csv"
     if _csv_has_rows(out_path) and not force:
         logger.info("google_reviews.csv already exists — skipping. Use force=True to re-fetch.")
@@ -316,7 +313,7 @@ def collect_google_reviews(
                 r["text"] for r in detail_result.get("reviews", [])
             )
             results.append({
-                "inspection_id": row.name,
+                "state_id": row["state_id"],
                 "establishment_name": row["establishment_name"],
                 "google_place_id": place["place_id"],
                 "google_name": detail_result.get("name"),
@@ -336,5 +333,36 @@ def collect_google_reviews(
     return df
 
 
+def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Collect NC inspection + review data")
+    parser.add_argument("--google-key", metavar="KEY", help="Google Maps API key")
+    parser.add_argument("--yelp-key", metavar="KEY", help="RapidAPI key for Yelp Business API")
+    parser.add_argument("--inspections-only", action="store_true", help="Only scrape inspections, skip reviews")
+    parser.add_argument("--force", action="store_true", help="Re-fetch even if output files already exist")
+    args = parser.parse_args()
+
+    raw_dir = ROOT / "data" / "raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    inspections_path = raw_dir / "inspections.csv"
+
+    collect_inspections(raw_dir, force=args.force)
+
+    if args.inspections_only:
+        return
+
+    if args.google_key:
+        collect_google_reviews(args.google_key, inspections_path, raw_dir, force=args.force)
+    else:
+        logger.info("--google-key not provided — skipping Google review collection")
+
+    if args.yelp_key:
+        collect_yelp_reviews(args.yelp_key, inspections_path, raw_dir, force=args.force)
+    else:
+        logger.info("--yelp-key not provided — skipping Yelp review collection")
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
+    main()

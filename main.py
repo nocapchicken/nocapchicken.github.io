@@ -1,5 +1,4 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
-"""Entry point: serve the Flask inference app."""
 
 import sys
 from pathlib import Path
@@ -11,7 +10,6 @@ from app import create_app
 
 
 def main() -> None:
-    """Launch the Flask application."""
     app = create_app()
     app.run(host="0.0.0.0", port=5000, debug=False)
 

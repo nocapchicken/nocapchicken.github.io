@@ -1,5 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
-"""Inference-only pipeline. Trained artifacts load on first request (APP1)."""
+"""Trained artifacts load on first request (APP1)."""
 
 from __future__ import annotations
 
@@ -53,7 +53,6 @@ def _load_rf_model():
 
 @lru_cache(maxsize=1)
 def _load_feature_names() -> list[str]:
-    """Load the feature names the RF was trained on."""
     path = MODELS_DIR / "rf_feature_names.pkl"
     if not path.exists():
         logger.warning("rf_feature_names.pkl not found — falling back to hardcoded features")
@@ -71,7 +70,7 @@ def _load_explainer():
 
 
 def _fetch_yelp(name: str, city: str) -> dict:
-    """Fetch Yelp business metadata and up to 3 reviews via RapidAPI."""
+    """Returns up to 3 reviews."""
     api_key = os.getenv("RAPIDAPI_KEY", "")
     if not api_key:
         return {}
@@ -116,7 +115,7 @@ def _fetch_yelp(name: str, city: str) -> dict:
 
 
 def _fetch_google(name: str, city: str) -> dict:
-    """Fetch Google Places rating and up to 5 reviews."""
+    """Returns up to 5 reviews."""
     api_key = os.getenv("GOOGLE_PLACES_API_KEY", "")
     if not api_key:
         return {}
@@ -163,7 +162,7 @@ class _FeatureData:
 
 
 def _build_feature_vector(yelp: dict, google: dict) -> _FeatureData:
-    """Build feature vector matching the columns the RF was trained on."""
+    """Align to the columns the RF was trained on."""
     yelp_rating = yelp.get("rating")
     google_rating = google.get("rating")
     yelp_count = yelp.get("review_count", 0) or 0
@@ -243,7 +242,6 @@ def suggest_restaurants(name: str, city: str) -> list[str]:
 
 
 def predict(restaurant_name: str, city: str) -> PredictionResult:
-    """Run end-to-end inference for a restaurant."""
     model = _load_rf_model()
     if model is None:
         return PredictionResult(

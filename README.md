@@ -7,7 +7,7 @@ This project investigates the relationship between NC restaurant health inspecti
 ## Project Structure
 
 ```
-├── README.md               <- You are here
+├── README.md
 ├── requirements.txt        <- Python dependencies
 ├── setup.py                <- Data acquisition and environment setup
 ├── main.py                 <- Entry point: run inference / launch app
@@ -43,8 +43,6 @@ python main.py
 ```
 
 ## Models
-
-Three approaches are implemented and evaluated:
 
 | Model | Location |
 |---|---|

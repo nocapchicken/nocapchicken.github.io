@@ -19,7 +19,7 @@ def index():
 
 @bp.post("/api/predict")
 def api_predict():
-    """Run model inference. Expects JSON {"name": str, "city": str}."""
+    """Expects JSON {"name": str, "city": str}."""
     body = request.get_json(silent=True) or {}
     name = (body.get("name") or "").strip()
     city = (body.get("city") or "").strip()
@@ -37,7 +37,7 @@ def api_predict():
 
 @bp.get("/api/suggest")
 def api_suggest():
-    """Return restaurant name suggestions. Expects ?name=str&city=str."""
+    """Expects ?name=str&city=str."""
     name = request.args.get("name", "").strip()
     city = request.args.get("city", "").strip()
     return jsonify(suggest_restaurants(name, city))

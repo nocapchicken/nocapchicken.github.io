@@ -28,3 +28,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Claude Code — local settings are personal and should not be shared
+.claude/settings.local.json

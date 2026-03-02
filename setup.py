@@ -32,7 +32,6 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    """Orchestrate full data acquisition pipeline."""
     args = parse_args()
     load_dotenv()
 

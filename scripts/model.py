@@ -49,7 +49,6 @@ EXCLUDE_COLS = {
 
 
 def load_data() -> tuple[pd.DataFrame, pd.Series]:
-    """Load the processed feature matrix."""
     df = pd.read_csv(PROCESSED_DIR / "features.csv")
     feature_cols = [
         col for col in df.columns
@@ -77,7 +76,6 @@ def evaluate(model, X_test: pd.DataFrame, y_test: pd.Series, name: str) -> dict:
 
 
 def train_naive_baseline(X_train: pd.DataFrame, y_train: pd.Series) -> DummyClassifier:
-    """Majority-class baseline that all other models must beat."""
     model = DummyClassifier(strategy="most_frequent", random_state=RANDOM_STATE)
     model.fit(X_train, y_train)
     return model
@@ -126,7 +124,6 @@ def train_distilbert(
     epochs: int = 3,
     batch_size: int = 16,
 ):
-    """Fine-tune DistilBERT for grade classification."""
     from transformers import (
         DistilBertTokenizerFast,
         DistilBertForSequenceClassification,

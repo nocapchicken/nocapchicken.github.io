@@ -13,7 +13,6 @@ OUT = ROOT / "docs" / "checklist" / "index.html"
 
 
 def parse_checklist(text: str) -> list[dict]:
-    """Return list of section dicts with their items."""
     sections: list[dict] = []
     current: dict | None = None
 
@@ -51,7 +50,7 @@ def parse_checklist(text: str) -> list[dict]:
 
 
 def _clean(text: str) -> str:
-    """Strip markdown emphasis and backticks for plain display."""
+    """Strip markdown formatting for plain display."""
     text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
     text = re.sub(r"`(.+?)`", r"\1", text)
     return text.strip(" —–-")
@@ -193,7 +192,6 @@ def render_html(sections: list[dict], generated_at: str) -> str:
 
 
 def main() -> None:
-    """Generate docs/checklist/index.html from REQUIREMENTS_CHECKLIST.md."""
     text = SOURCE.read_text()
     sections = parse_checklist(text)
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")

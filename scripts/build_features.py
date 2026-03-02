@@ -43,7 +43,7 @@ def merge_inspection_years(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
 
 
 def build_features() -> pd.DataFrame:
-    """Write data/processed/features.csv."""
+    """Write data/processed/features.csv from raw inspections + reviews."""
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
     merge_inspection_years(RAW_DIR)
@@ -71,7 +71,7 @@ def _load_inspections() -> pd.DataFrame:
 
 
 def _load_reviews(filename: str, prefix: str) -> pd.DataFrame:
-    """Load a reviews file and filter to high-confidence matches."""
+    """Filter to matches above MATCH_THRESHOLD."""
     path = RAW_DIR / filename
     if not path.exists() or not path.read_text().strip():
         logger.warning("%s not found or empty, skipping", path)
@@ -83,16 +83,16 @@ def _load_reviews(filename: str, prefix: str) -> pd.DataFrame:
 
 
 def _merge(inspections: pd.DataFrame, yelp: pd.DataFrame, google: pd.DataFrame) -> pd.DataFrame:
-    """Left-join inspections with yelp and google on inspection_id."""
+    """Left-join inspections with yelp and google on state_id (stable restaurant identifier)."""
     df = inspections.copy()
 
     if not yelp.empty:
-        df = df.merge(yelp.drop(columns=["establishment_name"], errors="ignore"),
-                      left_index=True, right_on="inspection_id", how="left")
+        yelp_cols = yelp.drop(columns=["establishment_name", "inspection_id"], errors="ignore")
+        df = df.merge(yelp_cols, on="state_id", how="left")
 
     if not google.empty:
-        df = df.merge(google.drop(columns=["establishment_name"], errors="ignore"),
-                      left_index=True, right_on="inspection_id", how="left", suffixes=("", "_google"))
+        google_cols = google.drop(columns=["establishment_name", "inspection_id"], errors="ignore")
+        df = df.merge(google_cols, on="state_id", how="left", suffixes=("", "_google"))
 
     return df
 

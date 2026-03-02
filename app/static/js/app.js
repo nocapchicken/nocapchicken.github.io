@@ -188,6 +188,7 @@
     resultCard.hidden     = true;
     resultError.hidden    = true;
     resultSkeleton.hidden = true;
+    document.getElementById('divergenceAlert').hidden = true;
   }
 
   function setLoading(on) {

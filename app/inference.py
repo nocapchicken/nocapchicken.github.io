@@ -263,6 +263,24 @@ def predict(restaurant_name: str, city: str) -> PredictionResult:
     yelp = _fetch_yelp(restaurant_name, city)
     google = _fetch_google(restaurant_name, city)
 
+    no_data = yelp.get("rating") is None and google.get("rating") is None
+    if no_data:
+        return PredictionResult(
+            restaurant_name=restaurant_name,
+            location=city,
+            predicted_grade="?",
+            grade_color="gray",
+            confidence=0.0,
+            yelp_rating=None,
+            yelp_review_count=None,
+            google_rating=None,
+            google_review_count=None,
+            rating_delta=None,
+            top_shap_features=[],
+            divergence_warning=False,
+            error="No review data found for this restaurant — prediction unavailable.",
+        )
+
     feat = _build_feature_vector(yelp, google)
     proba = model.predict_proba(feat.X)[0]
     pred_class = int(np.argmax(proba))

@@ -214,6 +214,8 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
   border-radius: 50%;
   animation: spin .7s linear infinite;
   position: absolute;
+  inset: 0;
+  margin: auto;
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }

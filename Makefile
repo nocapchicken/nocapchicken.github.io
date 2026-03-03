@@ -1,6 +1,9 @@
+-include .env
+export
+
 .DEFAULT_GOAL := help
 
-.PHONY: help install setup data-inspections data-google data-yelp features train run run-prod lint test clean
+.PHONY: help install setup data-inspections data-google features train run run-prod lint test clean
 
 help:
 	@echo ""
@@ -21,7 +24,7 @@ help:
 	@echo "  \033[36mtest\033[0m       Run pytest"
 	@echo "  \033[36mclean\033[0m      Remove __pycache__ and .pyc files"
 	@echo ""
-	@echo "\033[2m# data-inspections / data-google / data-yelp  — individual collection steps\033[0m"
+	@echo "\033[2m# data-inspections / data-google  — individual collection steps\033[0m"
 	@echo ""
 
 install:
@@ -34,10 +37,13 @@ data-inspections:
 	python3 scripts/make_dataset.py --inspections-only
 
 data-google:
-	python3 scripts/make_dataset.py --google-key $${GOOGLE_PLACES_API_KEY:?set GOOGLE_PLACES_API_KEY in .env or environment}
+	python3 -c "\
+from dotenv import load_dotenv; load_dotenv(); \
+import os, logging; logging.basicConfig(level=logging.INFO); \
+from pathlib import Path; \
+from scripts.make_dataset import collect_google_reviews; \
+collect_google_reviews(os.environ['GOOGLE_PLACES_API_KEY'], Path('data/raw/inspections.csv'), Path('data/raw'))"
 
-data-yelp:
-	python3 scripts/make_dataset.py --yelp-key $${RAPIDAPI_KEY:?set RAPIDAPI_KEY in .env or environment}
 
 features:
 	python3 scripts/build_features.py

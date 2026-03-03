@@ -17,7 +17,7 @@ RAW_DIR = ROOT / "data" / "raw"
 PROCESSED_DIR = ROOT / "data" / "processed"
 
 # Minimum fuzzy match score (0–100) to accept a name+address link
-MATCH_THRESHOLD = 70
+MATCH_THRESHOLD = 50
 
 
 def merge_inspection_years(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
@@ -49,10 +49,9 @@ def build_features() -> pd.DataFrame:
     merge_inspection_years(RAW_DIR)
 
     inspections = _load_inspections()
-    yelp = _load_reviews("yelp_reviews.csv", prefix="yelp")
     google = _load_reviews("google_reviews.csv", prefix="google")
 
-    merged = _merge(inspections, yelp, google)
+    merged = _merge(inspections, google)
     merged = _engineer_features(merged)
     merged = _encode_target(merged)
 
@@ -82,13 +81,9 @@ def _load_reviews(filename: str, prefix: str) -> pd.DataFrame:
     return df
 
 
-def _merge(inspections: pd.DataFrame, yelp: pd.DataFrame, google: pd.DataFrame) -> pd.DataFrame:
-    """Left-join inspections with yelp and google on state_id (stable restaurant identifier)."""
+def _merge(inspections: pd.DataFrame, google: pd.DataFrame) -> pd.DataFrame:
+    """Left-join inspections with google on state_id (stable restaurant identifier)."""
     df = inspections.copy()
-
-    if not yelp.empty:
-        yelp_cols = yelp.drop(columns=["establishment_name", "inspection_id"], errors="ignore")
-        df = df.merge(yelp_cols, on="state_id", how="left")
 
     if not google.empty:
         google_cols = google.drop(columns=["establishment_name", "inspection_id"], errors="ignore")
@@ -98,19 +93,13 @@ def _merge(inspections: pd.DataFrame, yelp: pd.DataFrame, google: pd.DataFrame) 
 
 
 def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
-    # Rating delta: platform agreement signal
-    if "yelp_rating" in df.columns and "google_rating" in df.columns:
-        df["rating_delta"] = (df["yelp_rating"] - df["google_rating"]).abs()
-
     # Combined review text (for NLP models)
-    text_cols = [c for c in ["yelp_reviews", "google_reviews"] if c in df.columns]
-    if text_cols:
-        df["combined_reviews"] = df[text_cols].fillna("").agg(" ".join, axis=1).str.strip()
+    if "google_reviews" in df.columns:
+        df["combined_reviews"] = df["google_reviews"].fillna("").str.strip()
 
     # Review volume signal
-    for col in ["yelp_review_count", "google_review_count"]:
-        if col in df.columns:
-            df[f"{col}_log"] = np.log1p(df[col].fillna(0))
+    if "google_review_count" in df.columns:
+        df["google_review_count_log"] = np.log1p(df["google_review_count"].fillna(0))
 
     return df
 

@@ -34,8 +34,7 @@ TARGET_COL = "grade_encoded"
 
 EXCLUDE_COLS = {
     # Target and raw text
-    TARGET_COL, "grade", "combined_reviews",
-    "yelp_reviews", "google_reviews",
+    TARGET_COL, "grade", "combined_reviews", "google_reviews",
     # Direct label leakage — score determines grade by definition
     "score",
     # Identifiers with no predictive value
@@ -43,8 +42,8 @@ EXCLUDE_COLS = {
     "county_code", "establishment_id", "inspection_id", "inspection_id_google",
     "state_id", "inspector_id", "inspection_date",
     "google_place_id", "google_name", "match_score",
-    # Raw counts — only log-transformed versions are used
-    "google_review_count", "yelp_review_count",
+    # Raw count — only log-transformed version is used
+    "google_review_count",
 }
 
 

@@ -107,7 +107,7 @@ Format: NeurIPS/ICML-style paper, white paper, or technical report.
 - [x] **CQ2** — No executable code outside `if __name__ == "__main__"` guards
 - [x] **CQ3** — Descriptive variable names throughout
 - [x] **CQ4** — Docstrings on all public functions
-- [ ] **CQ5** — **AI usage attributed** at top of each file that used AI assistance (link to source required)
+- [ ] **CQ5** — **AI usage attributed** at top of each file that used AI assistance (link to source required) — CI blocks new `.py` files without attribution; existing files must be updated manually
 - [ ] **CQ6** — External code/libraries attributed at top of relevant files
 
 > Note: Jupyter notebooks are allowed **only** in `notebooks/` and will not be graded directly.
@@ -116,11 +116,11 @@ Format: NeurIPS/ICML-style paper, white paper, or technical report.
 
 - [x] **GIT1** — Feature branches in use (current: `feature/flask-app`)
 - [x] **GIT2** — PR template in `.github/PULL_REQUEST_TEMPLATE/`
-- [ ] **GIT3** — All code merged via PRs (no direct commits to `main`)
-- [ ] **GIT4** — Every PR has a meaningful Summary (use the PR template — 1 paragraph minimum)
-- [ ] **GIT5** — Every PR reviewed with **substantive comments** — not just "LGTM" or a rubber-stamp
-- [ ] **GIT6** — `.env` is **never** committed (check `.gitignore`)
-- [ ] **GIT7** — Large data files / model binaries are **never** committed
+- [x] **GIT3** — All code merged via PRs (no direct commits to `main`) — enforced by branch protection
+- [x] **GIT4** — Every PR has a meaningful Summary (use the PR template — 1 paragraph minimum) — enforced by `PR Summary` CI check
+- [ ] **GIT5** — Every PR reviewed with **substantive comments** — not just "LGTM" or a rubber-stamp — partially enforced (1 CODEOWNER approval + conversation resolution required); review quality remains a human responsibility
+- [x] **GIT6** — `.env` is **never** committed (check `.gitignore`) — enforced by `Secret Scan` CI check
+- [x] **GIT7** — Large data files / model binaries are **never** committed — enforced by `Large File Scan` CI check (50 MB limit)
 
 ### Project Novelty (choose one)
 
@@ -155,7 +155,7 @@ Run through this before final submission:
 | Written Report | 0 | 17 | 0% |
 | Pitch | 0 | 5 | 0% |
 | Repo / Code Quality | 13 | 16 | 81% |
-| Git Best Practices | 2 | 7 | 29% |
-| **Total** | **21** | **62** | **34%** |
+| Git Best Practices | 6 | 7 | 86% |
+| **Total** | **25** | **62** | **40%** |
 
-> Last updated: 2026-02-26
+> Last updated: 2026-03-02

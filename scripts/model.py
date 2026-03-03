@@ -89,7 +89,10 @@ def train_random_forest(X_train: pd.DataFrame, y_train: pd.Series) -> RandomFore
         "max_depth": [None, 10, 20],
         "min_samples_split": [2, 5],
     }
-    rf = RandomForestClassifier(random_state=RANDOM_STATE, n_jobs=-1, class_weight="balanced")
+    # class_weight omitted intentionally: only 3 grade-C samples exist in the
+    # dataset — balanced weighting causes the model to collapse to predicting C
+    # for everything. Document this as a data limitation in the report (R11).
+    rf = RandomForestClassifier(random_state=RANDOM_STATE, n_jobs=-1)
     search = GridSearchCV(rf, param_grid, cv=5, scoring="f1_macro", n_jobs=-1, verbose=1)
     search.fit(X_train, y_train)
     logger.info("Best RF params: %s", search.best_params_)

@@ -1,0 +1,28 @@
+name: Regenerate Live Checklist
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "REQUIREMENTS_CHECKLIST.md"
+      - "scripts/generate_checklist.py"
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate checklist page
+        run: python3 scripts/generate_checklist.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/checklist/index.html
+          git diff --staged --quiet || git commit -m "chore: regenerate live checklist"
+          git push

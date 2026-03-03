@@ -1,12 +1,4 @@
-"""
-main.py — Entry point for the nocapchicken web application.
-
-Loads trained models and serves the inference API + frontend.
-No training happens here.
-
-Usage:
-    python main.py
-"""
+# AI-assisted (Claude Code, claude.ai) — https://claude.ai
 
 import sys
 from pathlib import Path
@@ -18,7 +10,6 @@ from app import create_app
 
 
 def main() -> None:
-    """Launch the Flask application."""
     app = create_app()
     app.run(host="0.0.0.0", port=5000, debug=False)
 

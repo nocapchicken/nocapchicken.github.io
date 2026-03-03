@@ -77,6 +77,7 @@ def _load_reviews(filename: str, prefix: str) -> pd.DataFrame:
         return pd.DataFrame()
 
     df = pd.read_csv(path)
+    df["match_score"] = pd.to_numeric(df["match_score"], errors="coerce")
     df = df[df["match_score"] >= MATCH_THRESHOLD].copy()
     return df
 

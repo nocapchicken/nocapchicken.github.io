@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TN Food Safety Check (Simple)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+    h1 { color: #333; }
+    .form-group { margin: 20px 0; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    input { padding: 10px; font-size: 16px; width: 300px; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 10px 20px; font-size: 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #45a049; }
+    .result { margin-top: 30px; padding: 20px; background: #f5f5f5; border-radius: 8px; }
+    .grade { font-size: 48px; font-weight: bold; }
+    .grade-A { color: green; }
+    .grade-B { color: orange; }
+    .grade-C { color: red; }
+    .error { color: red; }
+    .reviews { margin-top: 20px; }
+    .review { background: white; padding: 10px; margin: 10px 0; border-radius: 4px; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>Tennessee Food Safety Check</h1>
+
+  <div class="form-group">
+    <label>Restaurant Name:</label>
+    <input type="text" id="name" value="Hattie B's Hot Chicken" placeholder="e.g. The Pharmacy">
+  </div>
+
+  <div class="form-group">
+    <label>City:</label>
+    <input type="text" id="city" value="Nashville" placeholder="e.g. Nashville">
+  </div>
+
+  <button onclick="predict()">Check Food Safety</button>
+
+  <div id="result" class="result" style="display:none;"></div>
+
+  <script>
+    async function predict() {
+      const name = document.getElementById('name').value;
+      const city = document.getElementById('city').value;
+      const resultDiv = document.getElementById('result');
+
+      resultDiv.innerHTML = 'Loading...';
+      resultDiv.style.display = 'block';
+
+      try {
+        const response = await fetch('/api/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, city })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          resultDiv.innerHTML = `<p class="error">${data.error}</p>`;
+          return;
+        }
+
+        let html = `
+          <h2>${data.restaurant_name}</h2>
+          <p><strong>Location:</strong> ${data.location}, TN</p>
+          <p><strong>Predicted Grade:</strong> <span class="grade grade-${data.predicted_grade}">${data.predicted_grade}</span></p>
+          <p><strong>Confidence:</strong> ${(data.confidence * 100).toFixed(0)}%</p>
+          <p><strong>Yelp Rating:</strong> ${data.yelp_rating} stars (${data.yelp_review_count} reviews)</p>
+        `;
+
+        if (data.actual_grade) {
+          html += `<p><strong>Actual TN Inspection:</strong> Grade ${data.actual_grade} (Score: ${data.actual_score}/100)</p>`;
+        }
+
+        if (data.sample_reviews && data.sample_reviews.length > 0) {
+          html += '<div class="reviews"><strong>Sample Reviews:</strong>';
+          data.sample_reviews.forEach(r => {
+            html += `<div class="review">"${r.substring(0, 200)}..."</div>`;
+          });
+          html += '</div>';
+        }
+
+        resultDiv.innerHTML = html;
+      } catch (err) {
+        resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+        console.error('Fetch error:', err);
+      }
+    }
+
+    // Auto-run on load
+    predict();
+  </script>
+</body>
+</html>

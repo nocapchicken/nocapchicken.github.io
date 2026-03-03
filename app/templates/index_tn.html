@@ -1,0 +1,339 @@
+<!-- AI-assisted (Claude Code, claude.ai) — https://claude.ai -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nocapchicken — TN Food Safety Reality Check</title>
+  <script>if (localStorage.getItem('theme') === 'dark') document.documentElement.dataset.theme = 'dark';</script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <div class="logo">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="nocapchicken" class="logo-icon" />
+        <span class="logo-text">no<span class="logo-cap">cap</span>chicken</span>
+      </div>
+      <p class="tagline">Do reviews actually reflect food safety? <strong>(Tennessee Edition)</strong></p>
+      <button class="btn-theme" id="themeToggle" aria-label="Enable dark mode" aria-pressed="false" type="button">
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M15 11.5A6.5 6.5 0 018.5 3a6.5 6.5 0 100 13A6.5 6.5 0 0015 11.5z"/>
+        </svg>
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true" focusable="false">
+          <circle cx="9" cy="9" r="3"/>
+          <line x1="9" y1="1.5" x2="9" y2="3"/><line x1="9" y1="15" x2="9" y2="16.5"/>
+          <line x1="1.5" y1="9" x2="3" y2="9"/><line x1="15" y1="9" x2="16.5" y2="9"/>
+          <line x1="3.44" y1="3.44" x2="4.5" y2="4.5"/><line x1="13.5" y1="13.5" x2="14.56" y2="14.56"/>
+          <line x1="3.44" y1="14.56" x2="4.5" y2="13.5"/><line x1="13.5" y1="4.5" x2="14.56" y2="3.44"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero / Search -->
+  <main class="main">
+    <div class="container">
+
+      <section class="hero">
+        <h1 class="hero-title">
+          The real score<br />behind the <span class="hero-stars">stars</span>
+        </h1>
+        <p class="hero-sub">
+          We match Tennessee health inspection records with Yelp ratings
+          to surface restaurants where public perception diverges from ground-truth safety.
+        </p>
+      </section>
+
+      <section class="search-section">
+        <form class="search-form" id="searchForm" autocomplete="off">
+          <div class="search-row">
+            <div class="field-wrap">
+              <label for="restaurantName">Restaurant name</label>
+              <input
+                id="restaurantName"
+                type="text"
+                placeholder="e.g. Hattie B's Hot Chicken"
+                list="restaurant-suggestions"
+                autocomplete="off"
+                required
+              />
+              <datalist id="restaurant-suggestions"></datalist>
+            </div>
+            <div class="field-wrap field-wrap--city">
+              <label for="city">City (TN)</label>
+              <input
+                id="city"
+                type="text"
+                placeholder="e.g. Nashville"
+                list="tn-cities"
+                required
+              />
+              <datalist id="tn-cities">
+                <option value="Nashville"><option value="Franklin"><option value="Brentwood">
+                <option value="Hendersonville"><option value="Hermitage"><option value="Smyrna">
+                <option value="Antioch"><option value="Mount Juliet"><option value="Madison">
+                <option value="Goodlettsville"><option value="Nolensville"><option value="Gallatin">
+                <option value="White House"><option value="Old Hickory"><option value="Mt. Juliet">
+                <option value="Lebanon"><option value="Murfreesboro"><option value="Columbia">
+                <option value="Springfield"><option value="Dickson"><option value="Clarksville">
+                <option value="La Vergne"><option value="Memphis"><option value="Chattanooga">
+                <option value="Knoxville"><option value="Morristown"><option value="Johnson City">
+              </datalist>
+            </div>
+            <button class="btn-search" type="submit" aria-label="Check it">
+              <span class="btn-text">Check it</span>
+              <span class="btn-spinner" aria-hidden="true"></span>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Result card (hidden until query) -->
+      <section class="result-section" id="resultSection" aria-live="polite" aria-atomic="false" hidden>
+
+        <!-- Skeleton state -->
+        <div id="resultSkeleton" role="status" aria-label="Loading results" hidden>
+          <div class="skeleton-card">
+            <div class="skeleton-banner">
+              <div class="skeleton-banner-left">
+                <div class="skeleton-circle skeleton-bone"></div>
+                <div class="skeleton-banner-lines">
+                  <div class="skeleton-line skeleton-line--name skeleton-bone"></div>
+                  <div class="skeleton-line skeleton-line--loc skeleton-bone"></div>
+                </div>
+              </div>
+              <div class="skeleton-line skeleton-line--conf skeleton-bone"></div>
+            </div>
+            <div class="skeleton-platforms">
+              <div class="skeleton-platform-block">
+                <div class="skeleton-line skeleton-line--plabel skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--pvalue skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--pcount skeleton-bone"></div>
+              </div>
+              <div class="skeleton-platform-block">
+                <div class="skeleton-line skeleton-line--plabel skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--pvalue skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--pcount skeleton-bone"></div>
+              </div>
+              <div class="skeleton-platform-block">
+                <div class="skeleton-line skeleton-line--plabel skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--pvalue skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--pcount skeleton-bone"></div>
+              </div>
+            </div>
+            <div class="skeleton-shap">
+              <div class="skeleton-line skeleton-line--title skeleton-bone" style="margin-bottom:6px"></div>
+              <div class="skeleton-shap-row">
+                <div class="skeleton-line skeleton-line--feature skeleton-bone"></div>
+                <div class="skeleton-bar-bg skeleton-bone"></div>
+                <div class="skeleton-line skeleton-line--impact skeleton-bone"></div>
+              </div>
+              <div class="skeleton-shap-row">
+                <div class="skeleton-line skeleton-line--feature skeleton-bone"></div>
+                <div class="skeleton-bar-bg skeleton-bone" style="max-width:70%"></div>
+                <div class="skeleton-line skeleton-line--impact skeleton-bone"></div>
+              </div>
+              <div class="skeleton-shap-row">
+                <div class="skeleton-line skeleton-line--feature skeleton-bone"></div>
+                <div class="skeleton-bar-bg skeleton-bone" style="max-width:45%"></div>
+                <div class="skeleton-line skeleton-line--impact skeleton-bone"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error state -->
+        <div class="result-error" id="resultError" role="alert" aria-atomic="true" hidden>
+          <p id="errorMessage"></p>
+        </div>
+
+        <!-- Success state -->
+        <div class="result-card" id="resultCard" hidden>
+
+          <!-- Grade banner -->
+          <div class="grade-banner" id="gradeBanner">
+            <div class="grade-left">
+              <div class="grade-pill" id="gradePill"></div>
+              <div class="grade-meta">
+                <span class="grade-name" id="gradeName"></span>
+                <span class="grade-location" id="gradeLocation"></span>
+              </div>
+            </div>
+            <div class="grade-confidence">
+              <span class="data-badge data-badge--predicted">Random Forest</span>
+              <span class="confidence-label">Model confidence</span>
+              <span class="confidence-value" id="confidenceValue"></span>
+            </div>
+          </div>
+
+          <!-- Actual inspection (TN specific) -->
+          <div class="actual-inspection" id="actualInspection" hidden>
+            <div class="actual-header">
+              <span class="data-badge data-badge--actual">Actual TN Inspection</span>
+            </div>
+            <div class="actual-content">
+              <span class="actual-grade" id="actualGrade"></span>
+              <span class="actual-score" id="actualScore"></span>
+            </div>
+          </div>
+
+          <!-- Divergence warning -->
+          <div class="divergence-alert" id="divergenceAlert" role="alert" aria-atomic="true" hidden>
+            <span class="alert-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" focusable="false">
+                <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+              </svg>
+            </span>
+            <div>
+              <strong>Reality gap detected.</strong>
+              High review ratings mask a predicted poor inspection grade.
+              This restaurant may look better online than it is in practice.
+            </div>
+          </div>
+
+          <!-- Platform ratings (Yelp only for TN) -->
+          <div class="platforms-row platforms-row--single">
+            <div class="platform-card" id="yelpCard">
+              <div class="platform-logo yelp-logo">Yelp</div>
+              <div class="platform-stars" id="yelpStars"></div>
+              <div class="platform-count" id="yelpCount"></div>
+            </div>
+          </div>
+
+          <!-- SHAP explanation -->
+          <div class="shap-section" id="shapSection">
+            <div class="section-header">
+              <h3 class="section-title">What's driving this prediction</h3>
+              <span class="data-badge data-badge--explained">SHAP</span>
+            </div>
+            <ul class="shap-list" id="shapList"></ul>
+          </div>
+
+          <!-- Sample reviews -->
+          <div class="reviews-section" id="reviewsSection">
+            <div class="section-header">
+              <h3 class="section-title">What people are saying</h3>
+              <span class="data-badge data-badge--real">Yelp</span>
+            </div>
+            <ul class="reviews-list" id="reviewsList"></ul>
+          </div>
+
+        </div><!-- /result-card -->
+      </section><!-- /result-section -->
+
+      <!-- How it works -->
+      <section class="how-section">
+        <h2 class="section-title">How it works</h2>
+        <div class="steps-grid">
+          <div class="step">
+            <div class="step-num">01</div>
+            <div class="step-body">
+              <h4>TN health records</h4>
+              <p>We collected inspection scores and violation data for food establishments across Tennessee.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">02</div>
+            <div class="step-body">
+              <h4>Local Yelp reviews</h4>
+              <p>Each establishment is matched to Yelp reviews using fuzzy name + location matching.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">03</div>
+            <div class="step-body">
+              <h4>ML prediction</h4>
+              <p>A Random Forest trained on the merged dataset predicts the likely inspection grade — with SHAP-backed explanations.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /container -->
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Data: Tennessee Health Department, Yelp Dataset.</p>
+      <p>Built for educational purposes. Not a substitute for official health inspection records.</p>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script>
+    // TN-specific rendering and prefill
+    document.addEventListener('DOMContentLoaded', function() {
+      // Override render to handle actual inspection display
+      const originalRender = window.renderResult;
+      if (originalRender) {
+        window.renderResult = function(data) {
+          originalRender(data);
+          // Show actual inspection if available
+          const actualSection = document.getElementById('actualInspection');
+          const actualGrade = document.getElementById('actualGrade');
+          const actualScore = document.getElementById('actualScore');
+          if (data.actual_grade && data.actual_score !== null) {
+            actualGrade.textContent = 'Grade ' + data.actual_grade;
+            actualScore.textContent = '(Score: ' + data.actual_score + '/100)';
+            actualSection.hidden = false;
+          } else {
+            actualSection.hidden = true;
+          }
+        };
+      }
+
+      // Prefill with a sample restaurant
+      const prefillData = {{ prefill_data | tojson | safe }};
+      if (prefillData && !prefillData.error) {
+        document.getElementById('restaurantName').value = prefillData.restaurant_name;
+        document.getElementById('city').value = prefillData.location;
+
+        // Show result section
+        const resultSection = document.getElementById('resultSection');
+        const resultCard = document.getElementById('resultCard');
+        resultSection.hidden = false;
+        resultCard.hidden = false;
+
+        // Render the prefilled result
+        if (window.renderResult) {
+          window.renderResult(prefillData);
+        }
+      }
+    });
+  </script>
+  <style>
+    .actual-inspection {
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    [data-theme="dark"] .actual-inspection {
+      background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+    }
+    .actual-content {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .actual-grade {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    .actual-score {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+    .data-badge--actual {
+      background: #4caf50;
+      color: white;
+    }
+  </style>
+</body>
+</html>

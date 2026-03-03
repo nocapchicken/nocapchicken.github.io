@@ -217,6 +217,15 @@
     });
   }
 
+  // Example chips — click to pre-fill and submit
+  document.querySelectorAll('.example-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.getElementById('restaurantName').value = chip.dataset.name;
+      document.getElementById('city').value = chip.dataset.city;
+      document.getElementById('searchForm').requestSubmit();
+    });
+  });
+
   function escHtml(str) {
     return str
       .replace(/&/g, '&amp;')

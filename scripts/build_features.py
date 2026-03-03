@@ -93,11 +93,24 @@ def _merge(inspections: pd.DataFrame, google: pd.DataFrame) -> pd.DataFrame:
 
 
 def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
+    # Establishment type as a numeric code (e.g. "1 - Restaurant" → 1)
+    df["establishment_type_code"] = (
+        df["establishment_type"].str.split(" - ").str[0].astype(float, errors="ignore")
+    )
+
+    # County as-is — inspection culture varies by county
+    df["county_code"] = pd.to_numeric(df["county_code"], errors="coerce")
+
+    # Temporal features — seasonal patterns and inspection year
+    inspection_dt = pd.to_datetime(df["inspection_date"], errors="coerce")
+    df["inspection_month"] = inspection_dt.dt.month
+    df["inspection_year"] = inspection_dt.dt.year
+
     # Combined review text (for NLP models)
     if "google_reviews" in df.columns:
         df["combined_reviews"] = df["google_reviews"].fillna("").str.strip()
 
-    # Review volume signal
+    # Review volume signal (sparse — only present for Google-matched rows)
     if "google_review_count" in df.columns:
         df["google_review_count_log"] = np.log1p(df["google_review_count"].fillna(0))
 

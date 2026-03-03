@@ -39,8 +39,10 @@ EXCLUDE_COLS = {
     "score",
     # Identifiers with no predictive value
     "establishment_name", "street_address", "address", "city", "zip",
-    "county_code", "establishment_id", "inspection_id", "inspection_id_google",
+    "establishment_id", "inspection_id", "inspection_id_google",
     "state_id", "inspector_id", "inspection_date",
+    # Raw county/type — only encoded versions are used
+    "county_code", "establishment_type",
     "google_place_id", "google_name", "match_score",
     # Raw count — only log-transformed version is used
     "google_review_count",
@@ -87,7 +89,7 @@ def train_random_forest(X_train: pd.DataFrame, y_train: pd.Series) -> RandomFore
         "max_depth": [None, 10, 20],
         "min_samples_split": [2, 5],
     }
-    rf = RandomForestClassifier(random_state=RANDOM_STATE, n_jobs=-1)
+    rf = RandomForestClassifier(random_state=RANDOM_STATE, n_jobs=-1, class_weight="balanced")
     search = GridSearchCV(rf, param_grid, cv=5, scoring="f1_macro", n_jobs=-1, verbose=1)
     search.fit(X_train, y_train)
     logger.info("Best RF params: %s", search.best_params_)
@@ -190,8 +192,11 @@ def main() -> None:
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
     X, y = load_data()
+    # Stratify only when every class has enough samples for n_splits=5 CV folds
+    min_class_count = y.value_counts().min()
+    stratify = y if min_class_count >= 5 else None
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y
+        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=stratify
     )
 
     results = []

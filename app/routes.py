@@ -19,28 +19,26 @@ def index():
 
 @bp.post("/api/predict")
 def api_predict():
-    """Expects JSON {"name": str, "city": str}."""
+    """Expects JSON {"name": str}."""
     body = request.get_json(silent=True) or {}
     name = (body.get("name") or "").strip()
-    city = (body.get("city") or "").strip()
 
-    if not name or not city:
-        return jsonify({"error": "Both 'name' and 'city' are required."}), 400
+    if not name:
+        return jsonify({"error": "'name' is required."}), 400
 
     try:
-        result = predict(name, city)
+        result = predict(name)
         return jsonify(dataclasses.asdict(result))
     except Exception as exc:
-        logger.exception("Prediction failed for '%s' in '%s'", name, city)
+        logger.exception("Prediction failed for '%s'", name)
         return jsonify({"error": str(exc)}), 500
 
 
 @bp.get("/api/suggest")
 def api_suggest():
-    """Expects ?name=str&city=str."""
+    """Expects ?name=str."""
     name = request.args.get("name", "").strip()
-    city = request.args.get("city", "").strip()
-    return jsonify(suggest_restaurants(name, city))
+    return jsonify(suggest_restaurants(name))
 
 
 @bp.get("/health")

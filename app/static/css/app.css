@@ -180,8 +180,6 @@ html[data-theme="dark"] .btn-theme .icon-moon { display: none; }
   min-width: 180px;
 }
 
-.field-wrap--city { flex: 1; min-width: 140px; }
-
 label {
   font-size: 13px;
   font-weight: 600;
@@ -737,7 +735,7 @@ html[data-theme="dark"] .skeleton-bone {
   .hero-title { font-size: 36px; letter-spacing: -1px; }
 
   .search-row { flex-direction: column; }
-  .field-wrap, .field-wrap--city { min-width: 100%; }
+  .field-wrap { min-width: 100%; }
   .btn-search { width: 100%; justify-content: center; }
 
   .grade-banner { flex-direction: column; align-items: flex-start; gap: 16px; }

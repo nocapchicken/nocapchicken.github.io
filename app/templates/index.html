@@ -62,30 +62,6 @@
               />
               <datalist id="restaurant-suggestions"></datalist>
             </div>
-            <div class="field-wrap field-wrap--city">
-              <label for="city">City (NC)</label>
-              <input
-                id="city"
-                type="text"
-                placeholder="e.g. Raleigh"
-                list="nc-cities"
-                required
-              />
-              <datalist id="nc-cities">
-                <option value="Raleigh"><option value="Charlotte"><option value="Durham">
-                <option value="Greensboro"><option value="Winston-Salem"><option value="Fayetteville">
-                <option value="Cary"><option value="Wilmington"><option value="High Point">
-                <option value="Concord"><option value="Asheville"><option value="Chapel Hill">
-                <option value="Gastonia"><option value="Jacksonville"><option value="Apex">
-                <option value="Burlington"><option value="Rocky Mount"><option value="Mooresville">
-                <option value="Wilson"><option value="Hickory"><option value="Wake Forest">
-                <option value="Goldsboro"><option value="Monroe"><option value="Salisbury">
-                <option value="New Bern"><option value="Sanford"><option value="Garner">
-                <option value="Holly Springs"><option value="Fuquay-Varina"><option value="Morrisville">
-                <option value="Statesville"><option value="Kannapolis"><option value="Huntersville">
-                <option value="Matthews"><option value="Cornelius"><option value="Boone">
-              </datalist>
-            </div>
             <button class="btn-search" type="submit" aria-label="Check it">
               <span class="btn-text">Check it</span>
               <span class="btn-spinner" aria-hidden="true"></span>
@@ -94,10 +70,10 @@
         </form>
         <div class="examples-row" aria-label="Try an example">
           <span class="examples-label">Try:</span>
-          <button class="example-chip" type="button" data-name="Hawthorne &amp; Wood" data-city="Chapel Hill">Hawthorne &amp; Wood · Chapel Hill</button>
-          <button class="example-chip" type="button" data-name="EC Pho Vietnamese Noodle House" data-city="Greenville">EC Pho · Greenville</button>
-          <button class="example-chip" type="button" data-name="iRock Cafe" data-city="Salisbury">iRock Cafe · Salisbury</button>
-          <button class="example-chip" type="button" data-name="Los Guerreros Mexican Restaurant" data-city="Cleveland">Los Guerreros · Cleveland</button>
+          <button class="example-chip" type="button" data-name="Hawthorne &amp; Wood">Hawthorne &amp; Wood</button>
+          <button class="example-chip" type="button" data-name="EC Pho Vietnamese Noodle House">EC Pho</button>
+          <button class="example-chip" type="button" data-name="iRock Cafe">iRock Cafe</button>
+          <button class="example-chip" type="button" data-name="Los Guerreros Mexican Restaurant">Los Guerreros</button>
         </div>
       </section>
 
@@ -195,21 +171,10 @@
 
           <!-- Platform ratings -->
           <div class="platforms-row">
-            <div class="platform-card" id="yelpCard">
-              <div class="platform-logo yelp-logo">Yelp</div>
-              <div class="platform-stars" id="yelpStars"></div>
-              <div class="platform-count" id="yelpCount"></div>
-            </div>
-            <div class="platform-divider">vs.</div>
             <div class="platform-card" id="googleCard">
               <div class="platform-logo google-logo">Google</div>
               <div class="platform-stars" id="googleStars"></div>
               <div class="platform-count" id="googleCount"></div>
-            </div>
-            <div class="platform-card delta-card" id="deltaCard">
-              <div class="platform-logo">Platform delta</div>
-              <div class="delta-value" id="deltaValue"></div>
-              <div class="delta-label">star difference</div>
             </div>
           </div>
 

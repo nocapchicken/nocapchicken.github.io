@@ -65,8 +65,8 @@ def _load_explainer():
     return shap.TreeExplainer(model)
 
 
-def _fetch_google(name: str, city: str) -> dict:
-    """Returns up to 5 reviews."""
+def _fetch_google(name: str) -> dict:
+    """Returns rating, review count, location, and up to 5 review texts."""
     api_key = os.getenv("GOOGLE_PLACES_API_KEY", "")
     if not api_key:
         return {}
@@ -75,7 +75,7 @@ def _fetch_google(name: str, city: str) -> dict:
         import googlemaps
         gmaps = googlemaps.Client(key=api_key)
 
-        query = f"{name} restaurant {city} NC"
+        query = f"{name} restaurant NC"
         result = gmaps.find_place(query, input_type="textquery", fields=["place_id", "name"])
         candidates = result.get("candidates", [])
         if not candidates:
@@ -87,15 +87,21 @@ def _fetch_google(name: str, city: str) -> dict:
 
         details = gmaps.place(
             candidates[0]["place_id"],
-            fields=["name", "rating", "user_ratings_total", "reviews"]
+            fields=["name", "rating", "user_ratings_total", "reviews", "formatted_address"]
         )
         place = details.get("result", {})
         reviews = [rev["text"] for rev in place.get("reviews", [])]
+
+        # Trim address to city, state (e.g. "Raleigh, NC")
+        raw_address = place.get("formatted_address", "")
+        parts = [p.strip() for p in raw_address.split(",")]
+        location = ", ".join(parts[1:3]).strip() if len(parts) >= 3 else raw_address
 
         return {
             "rating": place.get("rating"),
             "review_count": place.get("user_ratings_total"),
             "reviews": reviews,
+            "location": location,
         }
     except Exception as exc:
         logger.warning("Google lookup failed: %s", exc)
@@ -154,7 +160,7 @@ def _compute_shap(X: np.ndarray, col_names: list[str], pred_class: int) -> list[
         return []
 
 
-def suggest_restaurants(name: str, city: str) -> list[str]:
+def suggest_restaurants(name: str) -> list[str]:
     """Return up to 5 restaurant name suggestions from Google Places."""
     api_key = os.getenv("GOOGLE_PLACES_API_KEY", "")
     if not api_key or len(name) < 2:
@@ -172,12 +178,12 @@ def suggest_restaurants(name: str, city: str) -> list[str]:
         return []
 
 
-def predict(restaurant_name: str, city: str) -> PredictionResult:
+def predict(restaurant_name: str) -> PredictionResult:
     model = _load_rf_model()
     if model is None:
         return PredictionResult(
             restaurant_name=restaurant_name,
-            location=city,
+            location="",
             predicted_grade="?",
             grade_color="gray",
             confidence=0.0,
@@ -188,12 +194,12 @@ def predict(restaurant_name: str, city: str) -> PredictionResult:
             error="Model not loaded — run python scripts/model.py first.",
         )
 
-    google = _fetch_google(restaurant_name, city)
+    google = _fetch_google(restaurant_name)
 
     if google.get("rating") is None:
         return PredictionResult(
             restaurant_name=restaurant_name,
-            location=city,
+            location="",
             predicted_grade="?",
             grade_color="gray",
             confidence=0.0,
@@ -220,7 +226,7 @@ def predict(restaurant_name: str, city: str) -> PredictionResult:
 
     return PredictionResult(
         restaurant_name=restaurant_name,
-        location=city,
+        location=google.get("location", ""),
         predicted_grade=predicted_grade,
         grade_color=GRADE_COLORS.get(predicted_grade, "gray"),
         confidence=confidence,

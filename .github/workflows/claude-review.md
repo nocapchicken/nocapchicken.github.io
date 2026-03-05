@@ -23,7 +23,7 @@ safe-outputs:
 
 tools:
   github:
-    toolsets: [pull-requests, repos]
+    toolsets: [pull_requests, repos]
 
 timeout-minutes: 10
 ---

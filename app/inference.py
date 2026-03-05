@@ -72,7 +72,7 @@ def _fetch_google(name: str) -> dict:
         return {}
 
     try:
-        import googlemaps
+        import googlemaps  # deferred: optional heavy dependency, avoids startup cost
         gmaps = googlemaps.Client(key=api_key)
 
         query = f"{name} restaurant NC"
@@ -122,7 +122,7 @@ def _build_feature_vector(google: dict) -> _FeatureData:
     google_count = google.get("review_count", 0) or 0
 
     available = {
-        "google_rating": google_rating or 0.0,
+        "google_rating": google_rating or 0.0,  # None → 0.0; model treats missing as low rating
         "google_review_count_log": np.log1p(google_count),
     }
 
@@ -166,7 +166,7 @@ def suggest_restaurants(name: str) -> list[str]:
     if not api_key or len(name) < 2:
         return []
     try:
-        import googlemaps
+        import googlemaps  # deferred: optional heavy dependency, avoids startup cost
         gmaps = googlemaps.Client(key=api_key)
         results = gmaps.places_autocomplete(
             name, types=["establishment"], location=None,
@@ -178,37 +178,31 @@ def suggest_restaurants(name: str) -> list[str]:
         return []
 
 
+def _unavailable(restaurant_name: str, error: str) -> PredictionResult:
+    return PredictionResult(
+        restaurant_name=restaurant_name,
+        location="",
+        predicted_grade="?",
+        grade_color="gray",
+        confidence=0.0,
+        google_rating=None,
+        google_review_count=None,
+        top_shap_features=[],
+        divergence_warning=False,
+        error=error,
+    )
+
+
 def predict(restaurant_name: str) -> PredictionResult:
+    """Fetch Google data, run RF inference, and return a PredictionResult."""
     model = _load_rf_model()
     if model is None:
-        return PredictionResult(
-            restaurant_name=restaurant_name,
-            location="",
-            predicted_grade="?",
-            grade_color="gray",
-            confidence=0.0,
-            google_rating=None,
-            google_review_count=None,
-            top_shap_features=[],
-            divergence_warning=False,
-            error="Model not loaded — run python scripts/model.py first.",
-        )
+        return _unavailable(restaurant_name, "Model not loaded — run python scripts/model.py first.")
 
     google = _fetch_google(restaurant_name)
 
     if google.get("rating") is None:
-        return PredictionResult(
-            restaurant_name=restaurant_name,
-            location="",
-            predicted_grade="?",
-            grade_color="gray",
-            confidence=0.0,
-            google_rating=None,
-            google_review_count=None,
-            top_shap_features=[],
-            divergence_warning=False,
-            error="No review data found for this restaurant — prediction unavailable.",
-        )
+        return _unavailable(restaurant_name, "No review data found for this restaurant — prediction unavailable.")
 
     feat = _build_feature_vector(google)
     proba = model.predict_proba(feat.X)[0]

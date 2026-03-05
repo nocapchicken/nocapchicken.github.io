@@ -384,7 +384,6 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description="Collect NC inspection + review data")
     parser.add_argument("--google-key", metavar="KEY", help="Google Maps API key")
-    parser.add_argument("--yelp-key", metavar="KEY", help="RapidAPI key for Yelp Business API")
     parser.add_argument("--inspections-only", action="store_true", help="Only scrape inspections, skip reviews")
     parser.add_argument("--force", action="store_true", help="Re-fetch even if output files already exist")
     args = parser.parse_args()
@@ -403,10 +402,6 @@ def main() -> None:
     else:
         logger.info("--google-key not provided — skipping Google review collection")
 
-    if args.yelp_key:
-        collect_yelp_reviews(args.yelp_key, inspections_path, raw_dir, force=args.force)
-    else:
-        logger.info("--yelp-key not provided — skipping Yelp review collection")
 
 
 if __name__ == "__main__":

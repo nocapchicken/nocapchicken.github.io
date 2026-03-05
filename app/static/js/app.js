@@ -82,7 +82,7 @@
     divAlert.hidden = !d.divergence_warning;
 
     // Platform ratings
-    renderPlatform('google', d.google_rating, d.google_review_count);
+    renderPlatform(d.google_rating, d.google_review_count);
 
     // SHAP
     renderShap(d.top_shap_features);
@@ -96,9 +96,9 @@
     resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  function renderPlatform(platform, rating, count) {
-    const starsEl = document.getElementById(`${platform}Stars`);
-    const countEl = document.getElementById(`${platform}Count`);
+  function renderPlatform(rating, count) {
+    const starsEl = document.getElementById('googleStars');
+    const countEl = document.getElementById('googleCount');
 
     if (rating != null) {
       starsEl.innerHTML = `${rating.toFixed(1)} <span class="star-glyph">★</span>`;

@@ -49,7 +49,7 @@ def build_features() -> pd.DataFrame:
     merge_inspection_years(RAW_DIR)
 
     inspections = _load_inspections()
-    google = _load_reviews("google_reviews.csv", prefix="google")
+    google = _load_reviews("google_reviews.csv")
 
     merged = _merge(inspections, google)
     merged = _engineer_features(merged)
@@ -69,7 +69,7 @@ def _load_inspections() -> pd.DataFrame:
     return df
 
 
-def _load_reviews(filename: str, prefix: str) -> pd.DataFrame:
+def _load_reviews(filename: str) -> pd.DataFrame:
     """Filter to matches above MATCH_THRESHOLD."""
     path = RAW_DIR / filename
     if not path.exists() or not path.read_text().strip():

@@ -358,7 +358,7 @@ def collect_google_reviews(
 
         time.sleep(0.1)
 
-        if len(new_results) % GOOGLE_SAVE_INTERVAL == 0:
+        if new_results and len(new_results) % GOOGLE_SAVE_INTERVAL == 0:
             _append_google_results(new_results, out_path)
             new_results = []
 
@@ -375,10 +375,6 @@ def _append_google_results(records: list[dict], out_path: Path) -> None:
     """Append records to google_reviews.csv, writing header only on first write."""
     df = pd.DataFrame(records)
     write_header = not out_path.exists() or out_path.stat().st_size == 0
-    if not write_header:
-        # Reorder columns to match the existing file so append aligns correctly
-        existing_cols = pd.read_csv(out_path, nrows=0).columns.tolist()
-        df = df[existing_cols]
     df.to_csv(out_path, mode="a", header=write_header, index=False)
     logger.info("Flushed %d records to %s", len(df), out_path)
 

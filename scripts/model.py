@@ -50,6 +50,7 @@ EXCLUDE_COLS = {
 
 
 def load_data() -> tuple[pd.DataFrame, pd.Series]:
+    """Load features.csv and return (X, y) with numeric columns only, excluding EXCLUDE_COLS."""
     df = pd.read_csv(PROCESSED_DIR / "features.csv")
     feature_cols = [
         col for col in df.columns
@@ -61,13 +62,17 @@ def load_data() -> tuple[pd.DataFrame, pd.Series]:
 
 
 def evaluate(model, X_test: pd.DataFrame, y_test: pd.Series, name: str) -> dict:
-    """Save confusion matrix to data/outputs/."""
+    """Evaluate a model on test data.
+
+    Saves a confusion matrix CSV to data/outputs/, logs the classification
+    report, and returns a dict containing the report and confusion matrix.
+    """
     y_pred = model.predict(X_test)
     report = classification_report(y_test, y_pred, output_dict=True)
     cm = confusion_matrix(y_test, y_pred)
 
     logger.info("\n=== %s ===", name)
-    logger.info(classification_report(y_test, y_pred))
+    logger.info("Classification report: %s", report)
     logger.info("Confusion matrix:\n%s", cm)
 
     OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -77,6 +82,7 @@ def evaluate(model, X_test: pd.DataFrame, y_test: pd.Series, name: str) -> dict:
 
 
 def train_naive_baseline(X_train: pd.DataFrame, y_train: pd.Series) -> DummyClassifier:
+    """Fit a majority-class DummyClassifier as the required naive baseline."""
     model = DummyClassifier(strategy="most_frequent", random_state=RANDOM_STATE)
     model.fit(X_train, y_train)
     return model

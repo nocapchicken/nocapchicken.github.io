@@ -36,6 +36,8 @@
   --btn-bg:      #1a1916;
   --btn-text:    #ffffff;
   --focus-ring:  rgba(26, 25, 22, 0.35);
+
+  --accent-soft:    #f0efec;       /* light tint of near-black accent for hover states */
 }
 
 html { font-size: 16px; -webkit-font-smoothing: antialiased; }
@@ -245,7 +247,7 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
 .example-chip {
   background: none; border: 1px solid var(--border);
   border-radius: 20px; padding: 5px 13px;
-  font-size: 13px; color: var(--text-secondary);
+  font-size: 13px; color: var(--text-muted);
   cursor: pointer; transition: background .15s, border-color .15s, color .15s;
   white-space: nowrap;
 }
@@ -488,19 +490,6 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
 
 .platform-card:last-child { border-right: none; }
 
-.platform-divider {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: var(--bg);
-  border-right: 1px solid var(--border);
-  min-width: 40px;
-}
-
 .platform-logo {
   font-size: 12px;
   font-weight: 700;
@@ -508,7 +497,6 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
   letter-spacing: .8px;
 }
 
-.yelp-logo { color: #d32323; }
 .google-logo { color: #4285f4; }
 
 .platform-stars {
@@ -520,16 +508,6 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
 .star-glyph { color: var(--star); }
 
 .platform-count { font-size: 12px; color: var(--text-muted); }
-
-.delta-card { background: var(--bg); text-align: center; justify-content: center; align-items: center; }
-
-.delta-value {
-  font-size: 30px;
-  font-weight: 700;
-  letter-spacing: -0.8px;
-}
-
-.delta-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; }
 
 /* SHAP section */
 
@@ -697,6 +675,7 @@ html[data-theme="dark"] {
 
   --btn-bg:     #636366;
   --focus-ring: rgba(242, 242, 247, 0.35);
+  --accent-soft: #2c2c2e;       /* dark-mode hover tint — matches --surface */
 }
 
 html[data-theme="dark"] .data-badge--predicted { background: #1c2d4a; color: #90c4f9; }
@@ -743,8 +722,6 @@ html[data-theme="dark"] .skeleton-bone {
 
   .platforms-row { flex-direction: column; }
   .platform-card { border-right: none; border-bottom: 1px solid var(--border); }
-  .platform-divider { display: none; }
-  .delta-card { border-bottom: none; }
 
   .steps-grid { grid-template-columns: 1fr; }
 

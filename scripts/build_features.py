@@ -62,6 +62,7 @@ def build_features() -> pd.DataFrame:
 
 
 def _load_inspections() -> pd.DataFrame:
+    """Load raw inspections CSV, drop rows with missing scores, and normalize grade values to uppercase."""
     df = pd.read_csv(RAW_DIR / "inspections.csv")
     df["score"] = pd.to_numeric(df["score"], errors="coerce")
     df = df.dropna(subset=["score"])
@@ -94,9 +95,11 @@ def _merge(inspections: pd.DataFrame, google: pd.DataFrame) -> pd.DataFrame:
 
 
 def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add derived numeric features: establishment_type_code, county_code, inspection_month,
+    inspection_year, combined_reviews, and google_review_count_log."""
     # Establishment type as a numeric code (e.g. "1 - Restaurant" → 1)
-    df["establishment_type_code"] = (
-        df["establishment_type"].str.split(" - ").str[0].astype(float, errors="ignore")
+    df["establishment_type_code"] = pd.to_numeric(
+        df["establishment_type"].str.split(" - ").str[0], errors="coerce"
     )
 
     # County as-is — inspection culture varies by county

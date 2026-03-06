@@ -50,7 +50,10 @@ def parse_checklist(text: str) -> list[dict]:
 
 
 def _clean(text: str) -> str:
-    """Strip markdown formatting for plain display."""
+    """Strip markdown bold and inline-code formatting for plain display.
+
+    Also strips leading and trailing dashes and em-dashes (–, —).
+    """
     text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
     text = re.sub(r"`(.+?)`", r"\1", text)
     return text.strip(" —–-")
@@ -61,41 +64,8 @@ def _progress(items: list[dict]) -> tuple[int, int]:
     return done, len(items)
 
 
-def render_html(sections: list[dict], generated_at: str) -> str:
-    total_done = sum(i["done"] for s in sections for i in s["items"])
-    total_all = sum(len(s["items"]) for s in sections)
-    total_pct = round(100 * total_done / total_all) if total_all else 0
-
-    section_html = ""
-    for sec in sections:
-        done, total = _progress(sec["items"])
-        pct = round(100 * done / total) if total else 0
-
-        rows = ""
-        for item in sec["items"]:
-            status_cls = "done" if item["done"] else "open"
-            glyph = "✓" if item["done"] else "○"
-            rows += (
-                f'<tr class="{status_cls}">'
-                f'<td class="item-glyph">{glyph}</td>'
-                f'<td class="item-id">{item["id"]}</td>'
-                f'<td class="item-label">{item["label"]}</td>'
-                f"</tr>\n"
-            )
-
-        section_html += f"""
-    <section class="checklist-section">
-      <div class="section-header">
-        <h2>{sec['title']}</h2>
-        <span class="section-count">{done}/{total}</span>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" style="width:{pct}%"></div></div>
-      <table class="item-table">
-        <tbody>{rows}</tbody>
-      </table>
-    </section>
-"""
-
+def _html_template(rows_html: str, total_pct: int, total_done: int, total_all: int, generated_at: str) -> str:
+    """Return the full HTML page string given the rendered section rows and summary counts."""
     return f"""<!-- AI-assisted (Claude Code, claude.ai) — https://claude.ai -->
 <!-- AUTO-GENERATED — edit REQUIREMENTS_CHECKLIST.md, not this file -->
 <!DOCTYPE html>
@@ -179,7 +149,7 @@ def render_html(sections: list[dict], generated_at: str) -> str:
         </div>
         <div class="progress-bar"><div class="progress-fill" style="width:{total_pct}%"></div></div>
       </div>
-      {section_html}
+      {rows_html}
     </div>
   </main>
 
@@ -191,7 +161,47 @@ def render_html(sections: list[dict], generated_at: str) -> str:
 """
 
 
+def render_html(sections: list[dict], generated_at: str) -> str:
+    """Render sections into a complete HTML checklist page."""
+    total_done = sum(i["done"] for s in sections for i in s["items"])
+    total_all = sum(len(s["items"]) for s in sections)
+    total_pct = round(100 * total_done / total_all) if total_all else 0
+
+    section_html = ""
+    for sec in sections:
+        done, total = _progress(sec["items"])
+        pct = round(100 * done / total) if total else 0
+
+        rows = ""
+        for item in sec["items"]:
+            status_cls = "done" if item["done"] else "open"
+            glyph = "✓" if item["done"] else "○"
+            rows += (
+                f'<tr class="{status_cls}">'
+                f'<td class="item-glyph">{glyph}</td>'
+                f'<td class="item-id">{item["id"]}</td>'
+                f'<td class="item-label">{item["label"]}</td>'
+                f"</tr>\n"
+            )
+
+        section_html += f"""
+    <section class="checklist-section">
+      <div class="section-header">
+        <h2>{sec['title']}</h2>
+        <span class="section-count">{done}/{total}</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:{pct}%"></div></div>
+      <table class="item-table">
+        <tbody>{rows}</tbody>
+      </table>
+    </section>
+"""
+
+    return _html_template(section_html, total_pct, total_done, total_all, generated_at)
+
+
 def main() -> None:
+    """Parse REQUIREMENTS_CHECKLIST.md and write the rendered HTML to docs/checklist/index.html."""
     text = SOURCE.read_text()
     sections = parse_checklist(text)
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")

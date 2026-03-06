@@ -14,6 +14,7 @@ bp = Blueprint("main", __name__)
 
 @bp.get("/")
 def index():
+    """Render the main search page."""
     return render_template("index.html")
 
 

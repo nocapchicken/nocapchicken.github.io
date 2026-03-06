@@ -1,5 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
-"""Trained artifacts load on first request (APP1)."""
+"""Inference pipeline for the Flask app: fetches Google data, builds features, and runs RF prediction."""
 
 from __future__ import annotations
 
@@ -40,6 +40,7 @@ class PredictionResult:
 
 @lru_cache(maxsize=1)
 def _load_rf_model():
+    """Load the trained Random Forest model once; subsequent calls return the cached instance."""
     path = MODELS_DIR / "random_forest.pkl"
     if not path.exists():
         logger.warning("Random Forest model not found at %s", path)
@@ -58,11 +59,19 @@ def _load_feature_names() -> list[str]:
 
 @lru_cache(maxsize=1)
 def _load_explainer():
+    """Build a SHAP TreeExplainer from the cached RF model; returns None if model is unavailable."""
     import shap
     model = _load_rf_model()
     if model is None:
         return None
     return shap.TreeExplainer(model)
+
+
+@lru_cache(maxsize=1)
+def _google_client(api_key: str):
+    """Return a cached googlemaps.Client; one instance per unique API key."""
+    import googlemaps  # deferred: optional heavy dependency, avoids startup cost
+    return googlemaps.Client(key=api_key)
 
 
 def _fetch_google(name: str) -> dict:
@@ -72,8 +81,7 @@ def _fetch_google(name: str) -> dict:
         return {}
 
     try:
-        import googlemaps  # deferred: optional heavy dependency, avoids startup cost
-        gmaps = googlemaps.Client(key=api_key)
+        gmaps = _google_client(api_key)
 
         query = f"{name} restaurant NC"
         result = gmaps.find_place(query, input_type="textquery", fields=["place_id", "name"])
@@ -117,7 +125,12 @@ class _FeatureData:
 
 
 def _build_feature_vector(google: dict) -> _FeatureData:
-    """Align to the columns the RF was trained on."""
+    """Align to the columns the RF was trained on.
+
+    Features available at inference time: google_rating, google_review_count_log.
+    Features not derivable from a Google lookup (establishment_type_code, inspection_month,
+    inspection_year, county_code) fall back to 0.0 via the dict.get default below.
+    """
     google_rating = google.get("rating")
     google_count = google.get("review_count", 0) or 0
 
@@ -166,8 +179,7 @@ def suggest_restaurants(name: str) -> list[str]:
     if not api_key or len(name) < 2:
         return []
     try:
-        import googlemaps  # deferred: optional heavy dependency, avoids startup cost
-        gmaps = googlemaps.Client(key=api_key)
+        gmaps = _google_client(api_key)
         results = gmaps.places_autocomplete(
             name, types=["establishment"], location=None,
             components={"country": "us"},

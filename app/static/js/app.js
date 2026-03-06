@@ -28,7 +28,9 @@
         const res   = await fetch(`/api/suggest?${params}`);
         const names = await res.json();
         suggestionList.innerHTML = names.map(n => `<option value="${escHtml(n)}">`).join('');
-      } catch (_) {}
+      } catch (err) {
+        console.error('Suggestion fetch failed:', err);
+      }
     }, 300);
   });
 
@@ -56,7 +58,8 @@
       } else {
         renderResult(data);
       }
-    } catch (_) {
+    } catch (err) {
+      console.error('Prediction request failed:', err);
       showError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
@@ -65,30 +68,30 @@
 
   // ── Render result ───────────────────────────────────────────
 
-  function renderResult(d) {
+  function renderResult(result) {
     // Grade pill
     const pill = document.getElementById('gradePill');
-    pill.textContent = d.predicted_grade;
-    pill.className = `grade-pill grade-${d.predicted_grade === '?' ? 'unknown' : d.predicted_grade}`;
+    pill.textContent = result.predicted_grade;
+    pill.className = `grade-pill grade-${result.predicted_grade === '?' ? 'unknown' : result.predicted_grade}`;
 
     // Restaurant meta
-    document.getElementById('gradeName').textContent = d.restaurant_name;
-    document.getElementById('gradeLocation').textContent = d.location || '';
+    document.getElementById('gradeName').textContent = result.restaurant_name;
+    document.getElementById('gradeLocation').textContent = result.location || '';
     document.getElementById('confidenceValue').textContent =
-      d.confidence > 0 ? `${Math.round(d.confidence * 100)}%` : '—';
+      result.confidence > 0 ? `${Math.round(result.confidence * 100)}%` : '—';
 
     // Divergence warning
     const divAlert = document.getElementById('divergenceAlert');
-    divAlert.hidden = !d.divergence_warning;
+    divAlert.hidden = !result.divergence_warning;
 
     // Platform ratings
-    renderPlatform(d.google_rating, d.google_review_count);
+    renderPlatform(result.google_rating, result.google_review_count);
 
     // SHAP
-    renderShap(d.top_shap_features);
+    renderShap(result.top_shap_features);
 
     // Sample reviews
-    renderReviews(d.sample_reviews);
+    renderReviews(result.sample_reviews);
 
     resultSkeleton.hidden = true;
     resultCard.hidden = false;

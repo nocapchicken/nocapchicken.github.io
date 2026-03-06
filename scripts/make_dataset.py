@@ -67,7 +67,11 @@ def collect_inspections(
     years: list[int] | None = None,
     force: bool = False,
 ) -> pd.DataFrame:
-    """Completed years are skipped unless force=True. Current year re-fetches if stale."""
+    """Scrape NC DHHS inspection records for all counties and years; return a combined DataFrame.
+
+    Completed years are skipped unless force=True. The current year re-fetches if stale (last
+    fetched before today). Each year is written to inspections_{year}.csv in output_dir.
+    """
     import datetime
     if years is None:
         years = list(range(2020, datetime.date.today().year + 1))
@@ -182,14 +186,18 @@ def _scrape_county_bulk(county_code: int, date_from: str = "", date_to: str = ""
 
 
 def _csv_has_rows(path: Path) -> bool:
+    """Return True if the CSV has at least one data row.
+
+    Requires >= 2 non-blank lines: one for the header and at least one data row.
+    """
     if not path.exists():
         return False
     with open(path) as fh:
-        non_blank = 0
+        line_count = 0
         for line in fh:
             if line.strip():
-                non_blank += 1
-                if non_blank >= 2:
+                line_count += 1
+                if line_count >= 2:
                     return True
     return False
 

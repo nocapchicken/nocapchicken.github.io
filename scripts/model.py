@@ -34,17 +34,18 @@ TARGET_COL = "grade_encoded"
 
 EXCLUDE_COLS = {
     # Target and raw text
-    TARGET_COL, "grade", "combined_reviews",
-    "yelp_reviews", "google_reviews",
+    TARGET_COL, "grade", "combined_reviews", "google_reviews",
     # Direct label leakage — score determines grade by definition
     "score",
     # Identifiers with no predictive value
     "establishment_name", "street_address", "address", "city", "zip",
-    "county_code", "establishment_id", "inspection_id", "inspection_id_google",
+    "establishment_id", "inspection_id", "inspection_id_google",
     "state_id", "inspector_id", "inspection_date",
+    # Raw county/type — only encoded versions are used
+    "county_code", "establishment_type",
     "google_place_id", "google_name", "match_score",
-    # Raw counts — only log-transformed versions are used
-    "google_review_count", "yelp_review_count",
+    # Raw count — only log-transformed version is used
+    "google_review_count",
 }
 
 
@@ -88,6 +89,9 @@ def train_random_forest(X_train: pd.DataFrame, y_train: pd.Series) -> RandomFore
         "max_depth": [None, 10, 20],
         "min_samples_split": [2, 5],
     }
+    # class_weight omitted intentionally: only 3 grade-C samples exist in the
+    # dataset — balanced weighting causes the model to collapse to predicting C
+    # for everything. Document this as a data limitation in the report (R11).
     rf = RandomForestClassifier(random_state=RANDOM_STATE, n_jobs=-1)
     search = GridSearchCV(rf, param_grid, cv=5, scoring="f1_macro", n_jobs=-1, verbose=1)
     search.fit(X_train, y_train)
@@ -191,8 +195,11 @@ def main() -> None:
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
     X, y = load_data()
+    # Stratify only when every class has enough samples for n_splits=5 CV folds
+    min_class_count = y.value_counts().min()
+    stratify = y if min_class_count >= 5 else None
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y
+        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=stratify
     )
 
     results = []

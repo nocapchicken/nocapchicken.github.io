@@ -280,39 +280,68 @@ def _yelp_reviews(business_id: str, headers: dict, limit: int = 3) -> list[dict]
     return reviews[:limit]
 
 
+GOOGLE_SAVE_INTERVAL = 50  # flush to disk every N new records
+
+
 def collect_google_reviews(
     api_key: str,
     inspections_path: Path,
     output_dir: Path,
     force: bool = False,
 ) -> pd.DataFrame:
-    """Fuzzy-match inspections to Google Places and fetch reviews."""
-    out_path = output_dir / "google_reviews.csv"
-    if _csv_has_rows(out_path) and not force:
-        logger.info("google_reviews.csv already exists — skipping. Use force=True to re-fetch.")
-        return pd.read_csv(out_path)
+    """Fuzzy-match inspections to Google Places and fetch reviews.
 
+    Resumes from where a previous run left off — already-fetched state_ids
+    are skipped. Appends to google_reviews.csv every GOOGLE_SAVE_INTERVAL
+    records so progress is not lost on interruption or quota exhaustion.
+    Use force=True to discard existing results and start fresh.
+    """
     import googlemaps
 
-    gmaps = googlemaps.Client(key=api_key)
-    inspections = pd.read_csv(inspections_path)
-    results = []
+    out_path = output_dir / "google_reviews.csv"
 
-    for _, row in tqdm(inspections.iterrows(), total=len(inspections), desc="Google"):
+    if force and out_path.exists():
+        out_path.unlink()
+        logger.info("force=True — removed existing google_reviews.csv")
+
+    # Load already-fetched state_ids so we can skip them
+    if _csv_has_rows(out_path):
+        existing = pd.read_csv(out_path)
+        fetched_ids = set(existing["state_id"].astype(str))
+        logger.info("Resuming — %d state_ids already fetched, skipping them.", len(fetched_ids))
+    else:
+        existing = pd.DataFrame()
+        fetched_ids = set()
+
+    inspections = pd.read_csv(inspections_path)
+    remaining = inspections[~inspections["state_id"].astype(str).isin(fetched_ids)]
+    logger.info("%d restaurants remaining to fetch.", len(remaining))
+
+    if remaining.empty:
+        logger.info("All restaurants already fetched.")
+        return existing
+
+    gmaps = googlemaps.Client(key=api_key)
+    new_results = []
+
+    for _, row in tqdm(remaining.iterrows(), total=len(remaining), desc="Google"):
         query = f"{row['establishment_name']} {row['street_address']} {row['city']} NC"
         try:
-            candidates = gmaps.find_place(query, input_type="textquery", fields=["place_id", "name"]).get("candidates", [])
+            candidates = gmaps.find_place(
+                query, input_type="textquery", fields=["place_id", "name"]
+            ).get("candidates", [])
             if not candidates:
                 continue
             place = candidates[0]
 
-            details = gmaps.place(place["place_id"], fields=["name", "rating", "user_ratings_total", "reviews"])
+            details = gmaps.place(
+                place["place_id"],
+                fields=["name", "rating", "user_ratings_total", "reviews"],
+            )
             detail_result = details.get("result", {})
 
-            reviews_text = " ||| ".join(
-                r["text"] for r in detail_result.get("reviews", [])
-            )
-            results.append({
+            reviews_text = " ||| ".join(r["text"] for r in detail_result.get("reviews", []))
+            new_results.append({
                 "state_id": row["state_id"],
                 "establishment_name": row["establishment_name"],
                 "google_place_id": place["place_id"],
@@ -320,17 +349,34 @@ def collect_google_reviews(
                 "google_rating": detail_result.get("rating"),
                 "google_review_count": detail_result.get("user_ratings_total"),
                 "google_reviews": reviews_text,
-                "match_score": fuzz.token_sort_ratio(row["establishment_name"], detail_result.get("name", "")),
+                "match_score": fuzz.token_sort_ratio(
+                    row["establishment_name"], detail_result.get("name", "")
+                ),
             })
         except Exception as exc:
             logger.warning("Google lookup failed for '%s': %s", row["establishment_name"], exc)
 
         time.sleep(0.1)
 
-    df = pd.DataFrame(results)
-    df.to_csv(out_path, index=False)
-    logger.info("Wrote %d Google records to %s", len(df), out_path)
-    return df
+        if new_results and len(new_results) % GOOGLE_SAVE_INTERVAL == 0:
+            _append_google_results(new_results, out_path)
+            new_results = []
+
+    # Final flush
+    if new_results:
+        _append_google_results(new_results, out_path)
+
+    result = pd.read_csv(out_path) if _csv_has_rows(out_path) else pd.DataFrame()
+    logger.info("google_reviews.csv now has %d total records.", len(result))
+    return result
+
+
+def _append_google_results(records: list[dict], out_path: Path) -> None:
+    """Append records to google_reviews.csv, writing header only on first write."""
+    df = pd.DataFrame(records)
+    write_header = not out_path.exists() or out_path.stat().st_size == 0
+    df.to_csv(out_path, mode="a", header=write_header, index=False)
+    logger.info("Flushed %d records to %s", len(df), out_path)
 
 
 def main() -> None:
@@ -338,7 +384,6 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description="Collect NC inspection + review data")
     parser.add_argument("--google-key", metavar="KEY", help="Google Maps API key")
-    parser.add_argument("--yelp-key", metavar="KEY", help="RapidAPI key for Yelp Business API")
     parser.add_argument("--inspections-only", action="store_true", help="Only scrape inspections, skip reviews")
     parser.add_argument("--force", action="store_true", help="Re-fetch even if output files already exist")
     args = parser.parse_args()
@@ -357,10 +402,6 @@ def main() -> None:
     else:
         logger.info("--google-key not provided — skipping Google review collection")
 
-    if args.yelp_key:
-        collect_yelp_reviews(args.yelp_key, inspections_path, raw_dir, force=args.force)
-    else:
-        logger.info("--yelp-key not provided — skipping Yelp review collection")
 
 
 if __name__ == "__main__":

@@ -1,11 +1,16 @@
+-include .env
+export
+
 .DEFAULT_GOAL := help
 
-.PHONY: help install setup data-inspections data-google data-yelp features train run run-prod lint test clean
+.PHONY: help install setup data-inspections data-google features train run run-prod lint test clean venv notebook
 
 help:
 	@echo ""
 	@echo "\033[2m# Setup\033[0m"
-	@echo "  \033[36minstall\033[0m    Install Python dependencies"
+	@echo "  \033[36mvenv\033[0m       Create .venv and install all dependencies"
+	@echo "  \033[36mnotebook\033[0m   Launch Jupyter in notebooks/"
+	@echo "  \033[36minstall\033[0m    Install Python dependencies (no venv)"
 	@echo "  \033[36msetup\033[0m      Collect inspections + reviews (reads .env)"
 	@echo ""
 	@echo "\033[2m# Data\033[0m"
@@ -21,8 +26,18 @@ help:
 	@echo "  \033[36mtest\033[0m       Run pytest"
 	@echo "  \033[36mclean\033[0m      Remove __pycache__ and .pyc files"
 	@echo ""
-	@echo "\033[2m# data-inspections / data-google / data-yelp  — individual collection steps\033[0m"
+	@echo "\033[2m# data-inspections / data-google  — individual collection steps\033[0m"
 	@echo ""
+
+venv:
+	python3 -m venv .venv
+	.venv/bin/pip install --upgrade pip
+	.venv/bin/pip install -r requirements.txt jupyter ipykernel
+	.venv/bin/python -m ipykernel install --user --name nocapchicken --display-name "nocapchicken"
+	@echo "\033[32m  venv ready — run: make notebook\033[0m"
+
+notebook:
+	.venv/bin/jupyter notebook notebooks/
 
 install:
 	pip3 install -r requirements.txt
@@ -34,10 +49,8 @@ data-inspections:
 	python3 scripts/make_dataset.py --inspections-only
 
 data-google:
-	python3 scripts/make_dataset.py --google-key $${GOOGLE_PLACES_API_KEY:?set GOOGLE_PLACES_API_KEY in .env or environment}
+	python3 scripts/make_dataset.py --google-key $${GOOGLE_PLACES_API_KEY:?set GOOGLE_PLACES_API_KEY in .env}
 
-data-yelp:
-	python3 scripts/make_dataset.py --yelp-key $${RAPIDAPI_KEY:?set RAPIDAPI_KEY in .env or environment}
 
 features:
 	python3 scripts/build_features.py

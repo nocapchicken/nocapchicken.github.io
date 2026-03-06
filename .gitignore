@@ -13,6 +13,8 @@ env/
 data/raw/inspections.csv
 data/raw/yelp_reviews.csv
 data/raw/google_reviews.csv
+data/raw/.claude/
+data/processed/features.csv
 data/outputs/
 
 # Models — serialized sklearn/joblib artifacts are committed (small, required for app)

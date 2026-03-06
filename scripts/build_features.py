@@ -72,7 +72,7 @@ def _load_inspections() -> pd.DataFrame:
 def _load_reviews(filename: str) -> pd.DataFrame:
     """Filter to matches above MATCH_THRESHOLD."""
     path = RAW_DIR / filename
-    if not path.exists() or not path.read_text().strip():
+    if not path.exists() or not path.read_text(encoding="utf-8").strip():
         logger.warning("%s not found or empty, skipping", path)
         return pd.DataFrame()
 

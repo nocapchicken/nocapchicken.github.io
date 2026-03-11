@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 ROOT = Path(__file__).parent.parent
 RAW_DIR = ROOT / "data" / "raw"
 PROCESSED_DIR = ROOT / "data" / "processed"
+MODELS_DIR = ROOT / "models"
 
 # Minimum fuzzy match score (0–100) to accept a name+address link
 MATCH_THRESHOLD = 50
@@ -119,12 +121,21 @@ def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _encode_target(df: pd.DataFrame) -> pd.DataFrame:
-    """Filter to valid grades (A/B/C) and add label-encoded target column."""
+    """Filter to valid grades (A/B/C) and add label-encoded target column.
+
+    Saves the fitted LabelEncoder to models/grade_encoder.pkl so inference.py
+    can verify its GRADE_LABELS mapping matches the training encoding.
+    """
     valid_grades = ["A", "B", "C"]
     df = df[df["grade"].isin(valid_grades)].copy()
 
     le = LabelEncoder()
     df["grade_encoded"] = le.fit_transform(df["grade"])
+
+    # Persist so inference.py can cross-check; alphabetical order gives A=0, B=1, C=2
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    joblib.dump(le, MODELS_DIR / "grade_encoder.pkl")
+    logger.info("Grade encoder saved: %s", dict(zip(le.classes_, le.transform(le.classes_))))
 
     return df
 

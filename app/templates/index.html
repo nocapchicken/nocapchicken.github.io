@@ -99,16 +99,6 @@
                 <div class="skeleton-line skeleton-line--pvalue skeleton-bone"></div>
                 <div class="skeleton-line skeleton-line--pcount skeleton-bone"></div>
               </div>
-              <div class="skeleton-platform-block">
-                <div class="skeleton-line skeleton-line--plabel skeleton-bone"></div>
-                <div class="skeleton-line skeleton-line--pvalue skeleton-bone"></div>
-                <div class="skeleton-line skeleton-line--pcount skeleton-bone"></div>
-              </div>
-              <div class="skeleton-platform-block">
-                <div class="skeleton-line skeleton-line--plabel skeleton-bone"></div>
-                <div class="skeleton-line skeleton-line--pvalue skeleton-bone"></div>
-                <div class="skeleton-line skeleton-line--pcount skeleton-bone"></div>
-              </div>
             </div>
             <div class="skeleton-shap">
               <div class="skeleton-line skeleton-line--title skeleton-bone" style="margin-bottom:6px"></div>
@@ -142,7 +132,10 @@
           <!-- Grade banner -->
           <div class="grade-banner" id="gradeBanner">
             <div class="grade-left">
-              <div class="grade-pill" id="gradePill"></div>
+              <div class="grade-pill-wrap">
+                <span class="grade-pill-label">Predicted</span>
+                <div class="grade-pill" id="gradePill"></div>
+              </div>
               <div class="grade-meta">
                 <span class="grade-name" id="gradeName"></span>
                 <span class="grade-location" id="gradeLocation"></span>
@@ -213,8 +206,8 @@
           <div class="step">
             <div class="step-num">02</div>
             <div class="step-body">
-              <h4>Dual-platform reviews</h4>
-              <p>Each establishment is matched to its Yelp and Google listings using fuzzy name + address linking.</p>
+              <h4>Google reviews</h4>
+              <p>Each establishment is matched to its Google listing using fuzzy name + address linking.</p>
             </div>
           </div>
           <div class="step">
@@ -232,7 +225,7 @@
 
   <footer class="site-footer">
     <div class="container">
-      <p>Data: <a href="https://public.cdpehs.com/NCENVPBL/ESTABLISHMENT/ShowESTABLISHMENTTablePage.aspx?ESTTST_CTY=32" target="_blank" rel="noopener">NC DHHS</a>, Yelp Fusion API, Google Places API.</p>
+      <p>Data: <a href="https://public.cdpehs.com/NCENVPBL/ESTABLISHMENT/ShowESTABLISHMENTTablePage.aspx?ESTTST_CTY=32" target="_blank" rel="noopener">NC DHHS</a>, Google Places API.</p>
       <p>Built for educational purposes. Not a substitute for official health inspection records.</p>
     </div>
   </footer>

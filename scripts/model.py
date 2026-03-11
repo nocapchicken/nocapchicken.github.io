@@ -50,6 +50,7 @@ EXCLUDE_COLS = {
 
 
 def load_data() -> tuple[pd.DataFrame, pd.Series]:
+    """Load feature matrix and target from features.csv; exclude non-numeric and identifier columns."""
     df = pd.read_csv(PROCESSED_DIR / "features.csv")
     feature_cols = [
         col for col in df.columns
@@ -77,6 +78,7 @@ def evaluate(model, X_test: pd.DataFrame, y_test: pd.Series, name: str) -> dict:
 
 
 def train_naive_baseline(X_train: pd.DataFrame, y_train: pd.Series) -> DummyClassifier:
+    """Train a majority-class dummy classifier as the performance lower bound."""
     model = DummyClassifier(strategy="most_frequent", random_state=RANDOM_STATE)
     model.fit(X_train, y_train)
     return model
@@ -217,6 +219,7 @@ def main() -> None:
     joblib.dump(X_train.columns.tolist(), MODELS_DIR / "rf_feature_names.pkl")
 
     # 3. DistilBERT (requires combined_reviews column to exist)
+    # Uses the same row indices as the RF split so metrics are comparable.
     if args.skip_bert:
         logger.info("Skipping DistilBERT training (--skip-bert)")
     else:
@@ -226,8 +229,13 @@ def main() -> None:
         else:
             texts = features_df["combined_reviews"].fillna("").tolist()
             labels = features_df[TARGET_COL].tolist()
+            # Re-use RANDOM_STATE and TEST_SIZE; apply same stratification logic as RF split
+            # so the DistilBERT test set is the same rows and comparison is valid.
+            min_class_count_bert = pd.Series(labels).value_counts().min()
+            stratify_bert = labels if min_class_count_bert >= 5 else None
             texts_train, texts_test, yl_train, yl_test = train_test_split(
-                texts, labels, test_size=TEST_SIZE, random_state=RANDOM_STATE
+                texts, labels,
+                test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=stratify_bert,
             )
             trainer = train_distilbert(texts_train, yl_train, texts_test, yl_test)
             trainer.save_model(str(MODELS_DIR / "distilbert"))

@@ -1,43 +1,45 @@
 // AI-assisted (Claude Code, claude.ai) — https://claude.ai
+/* nocapchicken — app.js (GitHub Pages static build) */
+
 (function () {
   'use strict';
 
   const API_BASE = 'https://nocapchicken-github-io.onrender.com';
 
-  const form           = document.getElementById('searchForm');
-  const btnSearch      = form.querySelector('.btn-search');
-  const resultSec      = document.getElementById('resultSection');
-  const resultCard     = document.getElementById('resultCard');
-  const resultError    = document.getElementById('resultError');
-  const resultSkeleton = document.getElementById('resultSkeleton');
-  const errorMsg       = document.getElementById('errorMessage');
+  const form            = document.getElementById('searchForm');
+  const btnSearch       = form.querySelector('.btn-search');
+  const resultSec       = document.getElementById('resultSection');
+  const resultCard      = document.getElementById('resultCard');
+  const resultError     = document.getElementById('resultError');
+  const resultSkeleton  = document.getElementById('resultSkeleton');
+  const errorMsg        = document.getElementById('errorMessage');
+  const restaurantInput = document.getElementById('restaurantName');
+  const suggestionList  = document.getElementById('restaurant-suggestions');
 
   // ── Restaurant suggestions ──────────────────────────────────
 
   let suggestTimer = null;
-  const restaurantInput = document.getElementById('restaurantName');
-  const suggestionList  = document.getElementById('restaurant-suggestions');
 
   restaurantInput.addEventListener('input', () => {
     clearTimeout(suggestTimer);
     suggestTimer = setTimeout(async () => {
       const name = restaurantInput.value.trim();
-      const city = document.getElementById('city').value.trim();
       if (name.length < 2) { suggestionList.innerHTML = ''; return; }
       try {
-        const params = new URLSearchParams({ name, city });
-        const res  = await fetch(`${API_BASE}/api/suggest?${params}`);
+        const params = new URLSearchParams({ name });
+        const res   = await fetch(`${API_BASE}/api/suggest?${params}`);
         const names = await res.json();
         suggestionList.innerHTML = names.map(n => `<option value="${escHtml(n)}">`).join('');
       } catch (_) {}
     }, 300);
   });
 
+  // ── Form submit ─────────────────────────────────────────────
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = document.getElementById('restaurantName').value.trim();
-    const city = document.getElementById('city').value.trim();
-    if (!name || !city) return;
+    const name = restaurantInput.value.trim();
+    if (!name) return;
 
     setLoading(true);
     hideAll();
@@ -48,7 +50,7 @@
       const res = await fetch(`${API_BASE}/api/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, city }),
+        body: JSON.stringify({ name }),
       });
       const data = await res.json();
       if (!res.ok || data.error) {
@@ -63,32 +65,31 @@
     }
   });
 
+  // ── Render result ───────────────────────────────────────────
+
   function renderResult(d) {
+    // Grade pill
     const pill = document.getElementById('gradePill');
     pill.textContent = d.predicted_grade;
     pill.className = `grade-pill grade-${d.predicted_grade === '?' ? 'unknown' : d.predicted_grade}`;
 
+    // Restaurant meta
     document.getElementById('gradeName').textContent = d.restaurant_name;
-    document.getElementById('gradeLocation').textContent = `${d.location}, NC`;
+    document.getElementById('gradeLocation').textContent = d.location || '';
     document.getElementById('confidenceValue').textContent =
       d.confidence > 0 ? `${Math.round(d.confidence * 100)}%` : '—';
 
+    // Divergence warning
     const divAlert = document.getElementById('divergenceAlert');
     divAlert.hidden = !d.divergence_warning;
 
-    renderPlatform('yelp', d.yelp_rating, d.yelp_review_count);
-    renderPlatform('google', d.google_rating, d.google_review_count);
+    // Platform ratings
+    renderPlatform(d.google_rating, d.google_review_count);
 
-    const deltaCard = document.getElementById('deltaCard');
-    const deltaVal  = document.getElementById('deltaValue');
-    if (d.rating_delta != null) {
-      deltaVal.textContent = d.rating_delta.toFixed(1);
-      deltaCard.style.display = '';
-    } else {
-      deltaCard.style.display = 'none';
-    }
-
+    // SHAP
     renderShap(d.top_shap_features);
+
+    // Sample reviews
     renderReviews(d.sample_reviews);
 
     resultSkeleton.hidden = true;
@@ -97,17 +98,16 @@
     resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  function renderPlatform(platform, rating, count) {
-    const platformNames = { yelp: 'Yelp', google: 'Google' };
-    const starsEl = document.getElementById(`${platform}Stars`);
-    const countEl = document.getElementById(`${platform}Count`);
+  function renderPlatform(rating, count) {
+    const starsEl = document.getElementById('googleStars');
+    const countEl = document.getElementById('googleCount');
 
     if (rating != null) {
       starsEl.innerHTML = `${rating.toFixed(1)} <span class="star-glyph">★</span>`;
       countEl.textContent = count ? `${count.toLocaleString()} reviews` : '';
     } else {
       starsEl.textContent = 'N/A';
-      countEl.textContent = `Not found on ${platformNames[platform] || platform}`;
+      countEl.textContent = 'Not found on Google';
     }
   }
 
@@ -121,6 +121,8 @@
       return;
     }
 
+    // Bars are scaled relative to the largest impact in this prediction.
+    // The numeric impact value (shown right) is the absolute SHAP contribution.
     const maxAbs = Math.max(...features.map(f => Math.abs(f.impact)), 0.001);
 
     features.forEach(f => {
@@ -164,6 +166,8 @@
     section.hidden = false;
   }
 
+  // ── UI helpers ──────────────────────────────────────────────
+
   function showError(msg) {
     resultSkeleton.hidden = true;
     errorMsg.textContent = msg;
@@ -203,6 +207,14 @@
       syncThemeBtn();
     });
   }
+
+  // Example chips — click to pre-fill and submit
+  document.querySelectorAll('.example-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      restaurantInput.value = chip.dataset.name;
+      form.requestSubmit();
+    });
+  });
 
   function escHtml(str) {
     return str

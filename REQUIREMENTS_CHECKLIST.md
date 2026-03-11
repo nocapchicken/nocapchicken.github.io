@@ -107,7 +107,7 @@ Format: NeurIPS/ICML-style paper, white paper, or technical report.
 - [x] **CQ2** — No executable code outside `if __name__ == "__main__"` guards
 - [x] **CQ3** — Descriptive variable names throughout
 - [x] **CQ4** — Docstrings on all public functions
-- [ ] **CQ5** — **AI usage attributed** at top of each file that used AI assistance (link to source required) — CI blocks new `.py` files without attribution; existing files must be updated manually
+- [x] **CQ5** — **AI usage attributed** at top of each file that used AI assistance (link to source required) — CI blocks new `.py` files without attribution; existing files must be updated manually
 - [ ] **CQ6** — External code/libraries attributed at top of relevant files
 
 > Note: Jupyter notebooks are allowed **only** in `notebooks/` and will not be graded directly.
@@ -154,8 +154,8 @@ Run through this before final submission:
 | App | 2 | 5 | 40% |
 | Written Report | 0 | 17 | 0% |
 | Pitch | 0 | 5 | 0% |
-| Repo / Code Quality | 13 | 16 | 81% |
+| Repo / Code Quality | 14 | 16 | 88% |
 | Git Best Practices | 6 | 7 | 86% |
-| **Total** | **25** | **62** | **40%** |
+| **Total** | **26** | **62** | **42%** |
 
-> Last updated: 2026-03-02
+> Last updated: 2026-03-10

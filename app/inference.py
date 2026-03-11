@@ -18,8 +18,29 @@ logger = logging.getLogger(__name__)
 ROOT = Path(__file__).parent.parent
 MODELS_DIR = ROOT / "models"
 
+# Hardcoded mapping must match the LabelEncoder used in build_features.py.
+# LabelEncoder sorts alphabetically: A→0, B→1, C→2.
+# If models/grade_encoder.pkl exists, it is cross-checked at startup.
 GRADE_LABELS = {0: "A", 1: "B", 2: "C"}
 GRADE_COLORS = {"A": "green", "B": "yellow", "C": "red"}
+
+
+def _verify_grade_mapping() -> None:
+    """Warn if the persisted grade encoder disagrees with GRADE_LABELS."""
+    encoder_path = MODELS_DIR / "grade_encoder.pkl"
+    if not encoder_path.exists():
+        return
+    try:
+        le = joblib.load(encoder_path)
+        actual = {int(le.transform([cls])[0]): cls for cls in le.classes_}
+        if actual != GRADE_LABELS:
+            logger.error(
+                "Grade mapping mismatch: GRADE_LABELS=%s but grade_encoder.pkl=%s. "
+                "Predictions will map to wrong grades.",
+                GRADE_LABELS, actual,
+            )
+    except Exception as exc:
+        logger.warning("Could not verify grade encoder: %s", exc)
 
 
 @dataclass
@@ -40,11 +61,14 @@ class PredictionResult:
 
 @lru_cache(maxsize=1)
 def _load_rf_model():
+    """Load the trained Random Forest; also verifies grade label mapping on first call."""
     path = MODELS_DIR / "random_forest.pkl"
     if not path.exists():
         logger.warning("Random Forest model not found at %s", path)
         return None
-    return joblib.load(path)
+    model = joblib.load(path)
+    _verify_grade_mapping()
+    return model
 
 
 @lru_cache(maxsize=1)
@@ -121,12 +145,21 @@ def _build_feature_vector(google: dict) -> _FeatureData:
     google_rating = google.get("rating")
     google_count = google.get("review_count", 0) or 0
 
+    # google_rating is guaranteed non-None by the caller (predict() checks before here).
+    # The `or 0.0` is a defensive fallback only; training data never contains 0.0 ratings.
     available = {
-        "google_rating": google_rating or 0.0,  # None → 0.0; model treats missing as low rating
+        "google_rating": google_rating or 0.0,
         "google_review_count_log": np.log1p(google_count),
     }
 
     feature_names = _load_feature_names()
+    zeroed = [n for n in feature_names if n not in available]
+    if zeroed:
+        logger.warning(
+            "Zeroing %d feature(s) not available at inference time: %s. "
+            "These were present at training but have no inference-time source.",
+            len(zeroed), zeroed,
+        )
     feature_values = [available.get(name, 0.0) for name in feature_names]
 
     return _FeatureData(

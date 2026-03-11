@@ -14,6 +14,7 @@ bp = Blueprint("main", __name__)
 
 @bp.get("/")
 def index():
+    """Serve the main single-page app."""
     return render_template("index.html")
 
 

@@ -8,14 +8,11 @@ Data sources:
        https://public.cdpehs.com/NCENVPBL/ESTABLISHMENT/ShowESTABLISHMENTTablePage.aspx
        Portal software © Custom Data Processing, Inc. — data is public government record.
 
-  2. Yelp business data via RapidAPI Yelp Business API proxy
-       https://rapidapi.com/oneapi/api/yelp-business-api
-
-  3. Google Places API
+  2. Google Places API
        https://developers.google.com/maps/documentation/places/web-service/overview
 
 The linking step uses fuzzy name + address matching (rapidfuzz) to join
-inspection records to Yelp/Google listings — this is the novel data
+inspection records to Google listings — this is the novel data
 contribution of the project.
 
 NC DHHS page structure (confirmed via inspection):
@@ -205,79 +202,6 @@ def _build_postback_payload(soup: BeautifulSoup, event_target: str) -> dict:
             payload[name] = value
 
     return payload
-
-
-def collect_yelp_reviews(
-    api_key: str,
-    inspections_path: Path,
-    output_dir: Path,
-    max_per_business: int = 3,
-    force: bool = False,
-) -> pd.DataFrame:
-    """Fuzzy-match inspections to Yelp businesses and fetch reviews."""
-    out_path = output_dir / "yelp_reviews.csv"
-    if _csv_has_rows(out_path) and not force:
-        logger.info("yelp_reviews.csv already exists — skipping. Use force=True to re-fetch.")
-        return pd.read_csv(out_path)
-
-    inspections = pd.read_csv(inspections_path)
-    headers = {
-        "x-rapidapi-key": api_key,
-        "x-rapidapi-host": "yelp-business-api.p.rapidapi.com",
-    }
-    results = []
-
-    for _, row in tqdm(inspections.iterrows(), total=len(inspections), desc="Yelp"):
-        business = _yelp_search(row["establishment_name"], row["street_address"], row["city"], headers)
-        if business is None:
-            continue
-
-        reviews = _yelp_reviews(business["id"], headers, limit=max_per_business)
-        results.append({
-            "state_id": row["state_id"],
-            "establishment_name": row["establishment_name"],
-            "yelp_id": business["id"],
-            "yelp_name": business["name"],
-            "yelp_rating": business.get("rating"),
-            "yelp_review_count": business.get("review_count"),
-            "yelp_price": business.get("price"),
-            "yelp_reviews": " ||| ".join(r["text"] for r in reviews),
-            "match_score": fuzz.token_sort_ratio(row["establishment_name"], business["name"]),
-        })
-        time.sleep(0.25)
-
-    df = pd.DataFrame(results)
-    df.to_csv(out_path, index=False)
-    logger.info("Wrote %d Yelp records to %s", len(df), out_path)
-    return df
-
-
-def _yelp_search(name: str, address: str, city: str, headers: dict) -> dict | None:
-    params = {"term": name, "location": f"{address}, {city}, NC", "limit": "1"}
-    resp = requests.get(
-        "https://yelp-business-api.p.rapidapi.com/search",
-        headers=headers,
-        params=params,
-        timeout=10,
-    )
-    if resp.status_code != 200:
-        logger.warning("Yelp search HTTP %d for '%s': %s", resp.status_code, name, resp.text[:200])
-        return None
-    businesses = resp.json().get("businesses", [])
-    return businesses[0] if businesses else None
-
-
-def _yelp_reviews(business_id: str, headers: dict, limit: int = 3) -> list[dict]:
-    resp = requests.get(
-        "https://yelp-business-api.p.rapidapi.com/reviews",
-        headers=headers,
-        params={"business_id": business_id},
-        timeout=10,
-    )
-    if resp.status_code != 200:
-        return []
-    reviews = resp.json().get("reviews", [])
-    return reviews[:limit]
 
 
 GOOGLE_SAVE_INTERVAL = 50  # flush to disk every N new records

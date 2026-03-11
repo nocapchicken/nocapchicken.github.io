@@ -36,6 +36,9 @@
   --btn-bg:      #1a1916;
   --btn-text:    #ffffff;
   --focus-ring:  rgba(26, 25, 22, 0.35);
+
+  --text-secondary: #3d3b36;
+  --accent-soft:    #edece8;
 }
 
 html { font-size: 16px; -webkit-font-smoothing: antialiased; }
@@ -681,8 +684,11 @@ html[data-theme="dark"] {
   --grade-c:    #ff453a;
   --grade-c-bg: #2d0d0d;
 
-  --btn-bg:     #636366;
-  --focus-ring: rgba(242, 242, 247, 0.35);
+  --btn-bg:       #636366;
+  --focus-ring:   rgba(242, 242, 247, 0.35);
+
+  --text-secondary: #c7c7cc;
+  --accent-soft:    #3a3a3c;
 }
 
 html[data-theme="dark"] .data-badge--predicted { background: #1c2d4a; color: #90c4f9; }
@@ -729,8 +735,6 @@ html[data-theme="dark"] .skeleton-bone {
 
   .platforms-row { flex-direction: column; }
   .platform-card { border-right: none; border-bottom: 1px solid var(--border); }
-  .platform-divider { display: none; }
-  .delta-card { border-bottom: none; }
 
   .steps-grid { grid-template-columns: 1fr; }
 

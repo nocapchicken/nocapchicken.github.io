@@ -304,6 +304,7 @@ def _append_google_results(records: list[dict], out_path: Path) -> None:
 
 
 def main() -> None:
+    """CLI entry point: scrape NC inspections and collect Google review data."""
     import argparse
 
     parser = argparse.ArgumentParser(description="Collect NC inspection + review data")

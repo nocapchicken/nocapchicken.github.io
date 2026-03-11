@@ -130,6 +130,7 @@ def train_distilbert(
     epochs: int = 3,
     batch_size: int = 16,
 ):
+    """Fine-tune DistilBERT for sequence classification on review text; returns the Trainer."""
     from transformers import (
         DistilBertTokenizerFast,
         DistilBertForSequenceClassification,

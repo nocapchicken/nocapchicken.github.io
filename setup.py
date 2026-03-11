@@ -23,6 +23,7 @@ from scripts.make_dataset import collect_inspections, collect_google_reviews
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for the data acquisition pipeline."""
     current_year = datetime.date.today().year
     p = argparse.ArgumentParser(description="nocapchicken data acquisition pipeline")
     p.add_argument("--force", action="store_true", help="Re-run all steps even if output exists")
@@ -32,6 +33,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Run the full data acquisition pipeline: inspections → Google reviews."""
     args = parse_args()
     load_dotenv()
 

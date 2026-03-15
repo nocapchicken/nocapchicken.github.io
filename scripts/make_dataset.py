@@ -136,8 +136,10 @@ def _scrape_county_bulk(county_code: int, date_from: str = "", date_to: str = ""
         logger.warning("County %d: unexpected Content-Type %s — no CSV returned", county_code, resp.headers.get("Content-Type"))
         return []
 
-    # Strip UTF-8 BOM if present and parse
-    df = pd.read_csv(io.StringIO(resp.text.lstrip("\ufeff")))
+    # Parse CSV from raw bytes with utf-8-sig to handle BOM correctly.
+    # Using resp.content (bytes) + utf-8-sig avoids the BOM-as-mojibake issue
+    # that caused resp.text.lstrip("\ufeff") to leave the BOM in column names.
+    df = pd.read_csv(io.BytesIO(resp.content), encoding="utf-8-sig")
     if df.empty:
         return []
 

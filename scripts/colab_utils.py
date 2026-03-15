@@ -79,18 +79,6 @@ def publish_artifacts(
     subprocess.run(["git", "config", "user.name", "Colab Bot"], check=True, cwd=repo_path)
     subprocess.run(["git", "remote", "set-url", "origin", repo_url], check=True, cwd=repo_path)
 
-    # Stash artifacts, rebase on latest, re-apply
-    stash_result = subprocess.run(
-        ["git", "stash", "push", "--include-untracked", "-m", "colab-artifacts", "--", *rel_paths],
-        check=True, cwd=repo_path, capture_output=True, text=True,
-    )
-    stashed = "No local changes to save" not in stash_result.stdout
-
-    subprocess.run(["git", "pull", "--rebase", "origin", branch], check=True, cwd=repo_path)
-
-    if stashed:
-        subprocess.run(["git", "stash", "pop"], check=True, cwd=repo_path)
-
     subprocess.run(["git", "add", "--", *rel_paths], check=True, cwd=repo_path)
 
     diff = subprocess.run(["git", "diff", "--cached", "--quiet", "--", *rel_paths], cwd=repo_path)

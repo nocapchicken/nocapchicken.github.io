@@ -16,7 +16,7 @@ All three must be **implemented, evaluated, and findable** in the repo.
 | M3 | Deep learning model | `scripts/model.py` → `train_distilbert()` | ✅ |
 | M4 | All three documented in README with file locations | `README.md` § Models | ✅ |
 | M5 | Rationale for each model written up in report | `report.md` § 7 | ✅ |
-| M6 | Selected final model clearly identified (and justified) | `report.md` § 11 (RF best at macro F1 0.57; BERT pending) | ✅ |
+| M6 | Selected final model clearly identified (and justified) | `report.md` § 11 (RF best at macro F1 0.57; BERT = 0.50) | ✅ |
 | M7 | Trained model artifacts present or reproducible | `models/` (naive_baseline.pkl, random_forest.pkl, distilbert/) | ✅ |
 
 ---

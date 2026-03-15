@@ -1,4 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
+# External libraries: scikit-learn (BSD-3), rapidfuzz (MIT)
 """Merges inspection + review data via fuzzy matching into a feature matrix."""
 
 from __future__ import annotations
@@ -6,6 +7,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
@@ -15,6 +17,7 @@ logger = logging.getLogger(__name__)
 ROOT = Path(__file__).parent.parent
 RAW_DIR = ROOT / "data" / "raw"
 PROCESSED_DIR = ROOT / "data" / "processed"
+MODELS_DIR = ROOT / "models"
 
 # Minimum fuzzy match score (0–100) to accept a name+address link
 MATCH_THRESHOLD = 50
@@ -62,6 +65,7 @@ def build_features() -> pd.DataFrame:
 
 
 def _load_inspections() -> pd.DataFrame:
+    """Read merged inspections, coerce score to numeric, normalize grade."""
     df = pd.read_csv(RAW_DIR / "inspections.csv")
     df["score"] = pd.to_numeric(df["score"], errors="coerce")
     df = df.dropna(subset=["score"])
@@ -94,6 +98,7 @@ def _merge(inspections: pd.DataFrame, google: pd.DataFrame) -> pd.DataFrame:
 
 
 def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add numeric, temporal, and text-derived features from inspection + review data."""
     # Establishment type as a numeric code (e.g. "1 - Restaurant" → 1)
     df["establishment_type_code"] = (
         df["establishment_type"].str.split(" - ").str[0].astype(float, errors="ignore")
@@ -115,16 +120,43 @@ def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     if "google_review_count" in df.columns:
         df["google_review_count_log"] = np.log1p(df["google_review_count"].fillna(0))
 
+    # Text-derived features for RF (gives structured models access to review content)
+    if "combined_reviews" in df.columns:
+        reviews = df["combined_reviews"].fillna("")
+        df["review_word_count"] = reviews.str.split().str.len().fillna(0).astype(int)
+        df["review_avg_word_len"] = (
+            reviews.str.replace(r"[^\w\s]", "", regex=True)
+            .str.split()
+            .apply(lambda words: np.mean([len(w) for w in words]) if words else 0)
+        )
+
+        # Safety-adjacent keywords that may correlate with inspection outcomes
+        safety_terms = r"\b(dirty|filthy|sick|roach|bug|rat|mouse|health|violation|gross|smell|mold|expired|undercooked|raw|contaminated)\b"
+        df["safety_keyword_count"] = reviews.str.lower().str.count(safety_terms)
+
+        # Negative sentiment proxy: count of strongly negative phrases
+        negative_terms = r"\b(worst|terrible|horrible|disgusting|awful|never again|food poisoning|threw up|diarrhea)\b"
+        df["negative_phrase_count"] = reviews.str.lower().str.count(negative_terms)
+
     return df
 
 
 def _encode_target(df: pd.DataFrame) -> pd.DataFrame:
-    """Filter to valid grades (A/B/C) and add label-encoded target column."""
+    """Filter to valid grades (A/B/C) and add label-encoded target column.
+
+    Saves the fitted LabelEncoder to models/grade_encoder.pkl so inference.py
+    can verify its GRADE_LABELS mapping matches the training encoding.
+    """
     valid_grades = ["A", "B", "C"]
     df = df[df["grade"].isin(valid_grades)].copy()
 
     le = LabelEncoder()
     df["grade_encoded"] = le.fit_transform(df["grade"])
+
+    # Persist so inference.py can cross-check; alphabetical order gives A=0, B=1, C=2
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    joblib.dump(le, MODELS_DIR / "grade_encoder.pkl")
+    logger.info("Grade encoder saved: %s", dict(zip(le.classes_, le.transform(le.classes_))))
 
     return df
 

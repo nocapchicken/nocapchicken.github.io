@@ -1,4 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
+# External libraries: scikit-learn (BSD-3), SHAP (MIT), HuggingFace transformers (Apache-2.0)
 """
 Three required modeling approaches:
   1. Naive baseline     — majority class classifier
@@ -46,10 +47,18 @@ EXCLUDE_COLS = {
     "google_place_id", "google_name", "match_score",
     # Raw count — only log-transformed version is used
     "google_review_count",
+    # Not available at inference time (app only has Google data, not inspection metadata)
+    "establishment_type_code", "inspection_month", "inspection_year",
 }
 
 
-def load_data() -> tuple[pd.DataFrame, pd.Series]:
+def load_data(binary: bool = True) -> tuple[pd.DataFrame, pd.Series]:
+    """Load feature matrix and target from features.csv.
+
+    When binary=True, collapses B+C into a single 'flagged' class (1) vs A (0).
+    This reframing is necessary because non-A samples are rare (3,354 of 231K:
+    3,249 B + 105 C), making 3-class learning infeasible.
+    """
     df = pd.read_csv(PROCESSED_DIR / "features.csv")
     feature_cols = [
         col for col in df.columns
@@ -57,6 +66,9 @@ def load_data() -> tuple[pd.DataFrame, pd.Series]:
     ]
     X = df[feature_cols].fillna(0)
     y = df[TARGET_COL]
+    if binary:
+        # A=0 stays 0 (safe), B=1 and C=2 both become 1 (flagged)
+        y = (y > 0).astype(int)
     return X, y
 
 
@@ -77,22 +89,27 @@ def evaluate(model, X_test: pd.DataFrame, y_test: pd.Series, name: str) -> dict:
 
 
 def train_naive_baseline(X_train: pd.DataFrame, y_train: pd.Series) -> DummyClassifier:
+    """Train a majority-class dummy classifier as the performance lower bound."""
     model = DummyClassifier(strategy="most_frequent", random_state=RANDOM_STATE)
     model.fit(X_train, y_train)
     return model
 
 
 def train_random_forest(X_train: pd.DataFrame, y_train: pd.Series) -> RandomForestClassifier:
-    """Returns best_estimator_ from 5-fold grid search (f1_macro)."""
+    """Returns best_estimator_ from 5-fold grid search (f1_macro).
+
+    Uses class_weight='balanced' to counteract the ~68:1 class imbalance
+    (A vs flagged). Without this, RF predicts all-A and learns nothing.
+    SMOTE was tested and produced no improvement (same recall, same precision).
+    """
     param_grid = {
         "n_estimators": [100, 200],
         "max_depth": [None, 10, 20],
         "min_samples_split": [2, 5],
     }
-    # class_weight omitted intentionally: only 3 grade-C samples exist in the
-    # dataset — balanced weighting causes the model to collapse to predicting C
-    # for everything. Document this as a data limitation in the report (R11).
-    rf = RandomForestClassifier(random_state=RANDOM_STATE, n_jobs=-1)
+    rf = RandomForestClassifier(
+        random_state=RANDOM_STATE, n_jobs=-1, class_weight="balanced",
+    )
     search = GridSearchCV(rf, param_grid, cv=5, scoring="f1_macro", n_jobs=-1, verbose=1)
     search.fit(X_train, y_train)
     logger.info("Best RF params: %s", search.best_params_)
@@ -124,10 +141,11 @@ def train_distilbert(
     y_train: list[int],
     texts_test: list[str],
     y_test: list[int],
-    num_labels: int = 3,
+    num_labels: int = 2,
     epochs: int = 3,
     batch_size: int = 16,
 ):
+    """Fine-tune DistilBERT for sequence classification on review text; returns the Trainer."""
     from transformers import (
         DistilBertTokenizerFast,
         DistilBertForSequenceClassification,
@@ -194,12 +212,10 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-    X, y = load_data()
-    # Stratify only when every class has enough samples for n_splits=5 CV folds
-    min_class_count = y.value_counts().min()
-    stratify = y if min_class_count >= 5 else None
+    X, y = load_data(binary=True)
+    logger.info("Binary target distribution: %s", y.value_counts().to_dict())
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=stratify
+        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y,
     )
 
     results = []
@@ -217,6 +233,7 @@ def main() -> None:
     joblib.dump(X_train.columns.tolist(), MODELS_DIR / "rf_feature_names.pkl")
 
     # 3. DistilBERT (requires combined_reviews column to exist)
+    # Uses the same row indices as the RF split so metrics are comparable.
     if args.skip_bert:
         logger.info("Skipping DistilBERT training (--skip-bert)")
     else:
@@ -224,12 +241,23 @@ def main() -> None:
         if "combined_reviews" not in features_df.columns:
             logger.warning("No combined_reviews column found — skipping DistilBERT training.")
         else:
-            texts = features_df["combined_reviews"].fillna("").tolist()
-            labels = features_df[TARGET_COL].tolist()
+            # Only train on rows with actual review text (empty reviews = no signal)
+            has_text = features_df["combined_reviews"].fillna("").str.len() > 0
+            bert_df = features_df[has_text].copy()
+            logger.info("DistilBERT: training on %d rows with review text (of %d total)",
+                        len(bert_df), len(features_df))
+
+            texts = bert_df["combined_reviews"].tolist()
+            labels = bert_df[TARGET_COL].tolist()
+            # Binary reframing: B+C → 1 (flagged), A → 0 (safe)
+            labels = [1 if lbl > 0 else 0 for lbl in labels]
             texts_train, texts_test, yl_train, yl_test = train_test_split(
-                texts, labels, test_size=TEST_SIZE, random_state=RANDOM_STATE
+                texts, labels,
+                test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=labels,
             )
-            trainer = train_distilbert(texts_train, yl_train, texts_test, yl_test)
+            trainer = train_distilbert(
+                texts_train, yl_train, texts_test, yl_test, num_labels=2,
+            )
             trainer.save_model(str(MODELS_DIR / "distilbert"))
             logger.info("DistilBERT saved to models/distilbert/")
 

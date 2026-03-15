@@ -12,20 +12,20 @@ North Carolina's Department of Health and Human Services (DHHS) inspects every l
 
 This project asks: **does the language and sentiment of public restaurant reviews contain signal that predicts official food safety inspection outcomes?** If so, a predictive model could surface restaurants where high public ratings mask poor inspection records, a gap we call a "reality gap." If not, the negative result itself is important: it means review platforms give consumers no information about food safety, and the two systems (public perception vs regulatory compliance) operate on completely independent axes.
 
-We frame this as a binary classification problem: **A (safe)** vs **Flagged (B or C inspection grade)**, trained on 31,760 NC DHHS inspection records linked to Google Places review data.
+We frame this as a binary classification problem: **A (safe)** vs **Flagged (B or C inspection grade)**, trained on 231,160 NC DHHS inspection records linked to Google Places review data.
 
 ## 2. Data Sources
 
 | Source | Records | Access Method | License |
 |--------|---------|---------------|---------|
-| NC DHHS Environmental Health | 31,760 inspections (2020-2026) across 100 counties | Scraped from the CDP public inspection portal via ASP.NET CSV export per county per year | Public government record (G.S. 132-1) |
+| NC DHHS Environmental Health | 231,160 inspections (2020-2026) across 100 counties | Scraped from the CDP public inspection portal via ASP.NET CSV export per county per year | Public government record (G.S. 132-1) |
 | Google Places API | 17,561 restaurant listings with ratings, review counts, and review text | `googlemaps` Python client, `find_place` + `place` detail requests | Google Terms of Service |
 
-The NC DHHS data provides inspection date, establishment name, address, score (0-100), grade (A/B/C), and inspector ID. Google Places data provides star rating, review count, and up to 5 review texts per listing.
+The NC DHHS data provides inspection date, establishment name, address, score (0-100), grade (A/B/C), and inspector ID. Each restaurant can have multiple inspections over time (average ~7 per restaurant across 2020-2026). Google Places data provides star rating, review count, and up to 5 review texts per listing.
 
-**Linking.** Inspections and Google listings were joined on `state_id` after fuzzy name matching using `rapidfuzz.fuzz.token_sort_ratio` with case normalization. A match threshold of 50 was used. Of 31,760 inspections, 14,529 (45.7%) were successfully linked to a Google listing with review data.
+**Linking.** Inspections and Google listings were joined on `state_id` after fuzzy name matching using `rapidfuzz.fuzz.token_sort_ratio` with case normalization. A match threshold of 50 was used. Of 231,160 inspections, 111,542 (48.2%) were successfully linked to a Google listing with review data.
 
-**Class distribution.** The dataset exhibits extreme imbalance: 31,563 A (99.4%), 194 B (0.6%), 3 C (0.01%). We collapsed B and C into a single "Flagged" class (n=197), creating a binary classification problem with a 160:1 imbalance ratio.
+**Class distribution.** The dataset exhibits significant imbalance: 227,806 A (98.5%), 3,249 B (1.4%), 105 C (0.05%). We collapsed B and C into a single "Flagged" class (n=3,354), creating a binary classification problem with a 68:1 imbalance ratio.
 
 ## 3. Related Work
 
@@ -41,7 +41,7 @@ Our work differs in several ways: (1) we use NC's letter-grade system rather tha
 
 ## 4. Evaluation Strategy and Metrics
 
-Metric selection is critical in this domain because the extreme class imbalance makes standard accuracy meaningless. A classifier that predicts A for every restaurant achieves 99.4% accuracy while catching zero unsafe establishments.
+Metric selection is critical in this domain because class imbalance makes standard accuracy meaningless. A classifier that predicts A for every restaurant achieves 98.5% accuracy while catching zero unsafe establishments.
 
 We evaluate on two complementary metrics:
 
@@ -69,7 +69,7 @@ The pipeline consists of four stages:
 
 4. **Target encoding.** Grades are binarized: A = 0 (safe), B or C = 1 (flagged). A `LabelEncoder` is persisted to `models/grade_encoder.pkl` for reproducibility.
 
-**Data quality fix.** An early version of the pipeline used `rapidfuzz.fuzz.token_sort_ratio` without case normalization. NC DHHS records use ALL-CAPS names; Google uses title case. This caused character-level matching to fail on casing alone ("BOJANGLES" vs "Bojangles" scored 11.1% instead of 100%). After adding `processor=fuzz_utils.default_process`, usable Google matches increased from 432 to 14,868 (a 34x improvement). This fix is documented as the project's primary experiment (Section 10).
+**Data quality fixes.** Two pipeline bugs silently degraded the training data: (1) case-sensitive fuzzy matching that reduced Google linkage from 14,868 to 432 matches, and (2) a BOM encoding error that dropped all inspection dates, collapsing 232K rows to 31K and losing 94% of B/C grade samples. Both fixes are documented as the project's primary experiment (Section 10).
 
 ## 6. Hyperparameter Tuning Strategy
 
@@ -81,7 +81,7 @@ The Random Forest was tuned via 5-fold `GridSearchCV` optimizing `f1_macro`:
 | `max_depth` | [None, 10, 20] | None |
 | `min_samples_split` | [2, 5] | 2 |
 
-`class_weight='balanced'` was applied to counteract the 160:1 imbalance. SMOTE oversampling was tested but produced no improvement over balanced class weights alone, so it was not included in the final model.
+`class_weight='balanced'` was applied to counteract the 68:1 imbalance. SMOTE oversampling was tested but produced no improvement over balanced class weights alone, so it was not included in the final model.
 
 DistilBERT was trained for 3 epochs with batch size 16, max sequence length 256, `eval_strategy='epoch'`, and `load_best_model_at_end=True` (selected by lowest validation loss). No learning rate sweep was performed due to computational constraints.
 
@@ -91,7 +91,7 @@ DistilBERT was trained for 3 epochs with batch size 16, max sequence length 256,
 
 A majority-class predictor (`strategy='most_frequent'`) that always predicts A. This establishes the performance floor: any useful model must exceed macro F1 = 0.50.
 
-**Rationale.** With 99.4% class A, a model that learns nothing will score extremely well on accuracy (99.4%) but contribute zero predictive value. The naive baseline makes this explicit.
+**Rationale.** With 98.5% class A, a model that learns nothing will score extremely well on accuracy but contribute zero predictive value. The naive baseline makes this explicit.
 
 ### 7.2 Random Forest with SHAP Explainability
 
@@ -101,7 +101,7 @@ A `RandomForestClassifier` trained on 6 Google-derived features with `class_weig
 
 ### 7.3 DistilBERT Fine-Tuned on Review Text
 
-`DistilBertForSequenceClassification` fine-tuned on concatenated Google review text (binary, num_labels=2). Trained only on the 14,529 rows with review text, on a T4 GPU via Google Colab.
+`DistilBertForSequenceClassification` fine-tuned on concatenated Google review text (binary, num_labels=2). Trained on the 111,542 rows with review text, on a T4 GPU via Google Colab.
 
 **Rationale.** If food safety signal exists in review text, a pretrained language model should be able to find it. DistilBERT can capture semantic patterns ("the bathroom was filthy," "saw a roach") that keyword counting would miss. This model tests the upper bound of what NLP can extract from this data.
 
@@ -109,155 +109,143 @@ A `RandomForestClassifier` trained on 6 Google-derived features with `class_weig
 
 ### Quantitative Comparison
 
-| Model | Macro F1 | Flagged Precision | Flagged Recall | Accuracy |
-|-------|----------|-------------------|----------------|----------|
-| Naive Baseline | 0.50 | 0.00 | 0.00 | 99.4% |
-| Random Forest (balanced) | 0.50 | 0.00 | 0.00 | 99.4% |
-| DistilBERT (binary) | 0.50 | 0.00 | 0.00 | 99.4% |
+| Model | Macro F1 | Flagged Precision | Flagged Recall | Flagged F1 |
+|-------|----------|-------------------|----------------|------------|
+| Naive Baseline | 0.50 | 0.00 | 0.00 | 0.00 |
+| Random Forest (balanced) | **0.57** | 0.11 | **0.28** | **0.16** |
+| DistilBERT (binary) | *pending retrain* | | | |
 
-All three models converge to the same behavior: predict A for every restaurant. Neither structured features nor pretrained language models learned to distinguish safe from flagged establishments using review data.
+The Random Forest detects real signal above baseline, catching 28% of flagged restaurants (191 of 671 in the test set). This became possible only after fixing two data pipeline bugs (Section 10) that had collapsed 232K inspection rows into 31K and hidden 94% of minority-class samples.
 
 ### SHAP Feature Importance (Random Forest)
 
 | Feature | Mean |SHAP| |
 |---------|------------|
-| review_avg_word_len | 0.065 |
-| google_review_count_log | 0.065 |
-| review_word_count | 0.054 |
-| google_rating | 0.046 |
-| safety_keyword_count | 0.008 |
-| negative_phrase_count | 0.008 |
+| review_word_count | 0.060 |
+| google_review_count_log | 0.056 |
+| review_avg_word_len | 0.053 |
+| google_rating | 0.042 |
+| safety_keyword_count | 0.011 |
+| negative_phrase_count | 0.010 |
 
-All SHAP values are near zero, confirming that no individual feature carries discriminative signal.
-
-### DistilBERT Training Dynamics
-
-| Epoch | Training Loss | Validation Loss |
-|-------|--------------|-----------------|
-| 1 | 0.043 | 0.042 |
-| 2 | 0.047 | 0.042 |
-| 3 | 0.044 | 0.042 |
-
-Validation loss is flat from epoch 1, indicating the model learned to predict the majority class immediately and found no additional signal in subsequent epochs.
+Review volume features (word count, review count) carry the most signal. Safety-specific keyword features contribute modestly but measurably. Google star rating alone is a weak predictor.
 
 ### Confusion Matrices
 
-**Naive Baseline (test set, n=6,352):**
+**Naive Baseline (test set, n=46,232):**
 
 |  | Pred Safe | Pred Flagged |
 |--|-----------|-------------|
-| True Safe | 6,313 | 0 |
-| True Flagged | 39 | 0 |
+| True Safe | 45,561 | 0 |
+| True Flagged | 671 | 0 |
 
-**Random Forest (test set, n=6,352):**
-
-|  | Pred Safe | Pred Flagged |
-|--|-----------|-------------|
-| True Safe | 6,312 | 1 |
-| True Flagged | 39 | 0 |
-
-**DistilBERT (test set, n=2,906):**
+**Random Forest (test set, n=46,232):**
 
 |  | Pred Safe | Pred Flagged |
 |--|-----------|-------------|
-| True Safe | 2,886 | 0 |
-| True Flagged | 20 | 0 |
+| True Safe | 44,013 | 1,548 |
+| True Flagged | 480 | 191 |
 
-All three confusion matrices are nearly identical to the trivial all-A prediction.
+The RF trades 1,548 false positives for 191 true positives, a precision of 11% at 28% recall. In this domain, catching 191 flagged restaurants at the cost of over-flagging 1,548 safe ones may be acceptable as a screening tool (not a definitive label).
 
 ## 9. Error Analysis
 
-We examine 5 specific false negatives: restaurants with grade B or C that the model predicted as safe. All 39 flagged restaurants in the test set were misclassified.
+We examine 5 specific false negatives: flagged restaurants the model predicted as safe. Of 671 flagged restaurants in the test set, 480 were missed (28% recall).
 
-### Case 1: Little Caesar's #84 (Grade B, Score 89.5)
+### Case 1: La Tovara Mexican Kitchen and Seafood (Grade B, Score 86.5)
 
-- **Google rating:** 3.8 (522 reviews)
-- **Model P(flagged):** 0.150
-- **Safety keywords:** 2 ("raw" appears twice in reviews)
-- **Review excerpt:** "My pizza and crazy bread were practically raw. I had to try to bake it myself when I got home."
-- **Root cause:** Despite reviews mentioning raw food (a safety-relevant signal), the model assigns low probability because the overall feature profile (3.8 stars, 522 reviews, moderate word count) is statistically indistinguishable from an A-grade restaurant.
-- **Mitigation:** Weight safety-keyword features more heavily, or train a secondary classifier specifically on review sentences containing safety-adjacent language. The word "raw" in a food context is a strong prior for violations.
+- **Google rating:** 4.6 | **Safety keywords:** 0 | **P(flagged):** 0.496
+- **Review excerpt:** "Found another gem here in Greenville! Friendly and helpful staff and the food was great tasting and nicely portioned."
+- **Root cause:** High rating (4.6), zero safety keywords, entirely positive reviews. The model came close to the decision boundary (P=0.496) but the absence of any negative textual signal kept it on the safe side.
+- **Mitigation:** Lower the classification threshold from 0.50 to 0.45 for this borderline band. This would catch near-threshold cases at the cost of more false positives.
 
-### Case 2: Little Caesars New Bern (Grade B, Score 88.0)
+### Case 2: El Potrillo Moyock (Grade B, Score 86.5)
 
-- **Google rating:** 3.6 (608 reviews)
-- **Model P(flagged):** 0.050
-- **Negative phrases:** 2
-- **Review excerpt:** "There's a long black hair all across my food... complete waste of my money."
-- **Root cause:** Hair contamination is a classic inspection violation, but the model has no feature to capture foreign-object complaints specifically. The negative phrase count (2) is within the normal range for A-grade restaurants.
-- **Mitigation:** Add a "contamination" keyword list (hair, foreign object, found something in) as a dedicated feature. Currently, these signals are diluted in the general negative phrase count.
+- **Google rating:** 4.4 | **Safety keywords:** 0 | **P(flagged):** 0.483
+- **Review excerpt:** "Very disappointing to spend $70+ and have to go home and cook dinner... the cheese dip was too salty for any of us to eat."
+- **Root cause:** The review expresses dissatisfaction with food quality, not safety. "Disappointing" and "too salty" are dining complaints, not hygiene indicators. The model correctly identifies these as non-safety signals but misses the underlying inspection failure.
+- **Mitigation:** This case is fundamentally unlinkable from review text. The inspection violation (score 86.5) reflects back-of-house issues invisible to diners.
 
-### Case 3: A Taste of Big Bois (Grade B, Score 88.5)
+### Case 3: El Mexicano Tacos and Tequila (Grade B, Score 88.5)
 
-- **Google rating:** 4.0 (75 reviews)
-- **Model P(flagged):** 0.040
-- **Safety keywords:** 0, **Negative phrases:** 0
-- **Review excerpt:** "These 2 meals were sooooo good! Even though he's the only chef, it took less than 20 min..."
-- **Root cause:** Reviews are overwhelmingly positive and discuss food quality, not safety. The inspection failure (score 88.5, grade B) reflects back-of-house issues (e.g., temperature logs, sanitizer concentration) that customers cannot observe or write about.
-- **Mitigation:** This case is fundamentally unlinkable from review data. The only viable strategy is to incorporate structured inspection history (has the establishment been flagged before?) rather than relying solely on review text.
+- **Google rating:** 4.7 | **Safety keywords:** 0 | **P(flagged):** 0.481
+- **Review excerpt:** "Ordered the seafood fajitas and seafood dip and the house made guac and all of it was so delicious."
+- **Root cause:** 4.7-star rating with glowing reviews. The inspection failure is entirely invisible in the customer experience. No feature in the model's vocabulary can detect this.
+- **Mitigation:** Incorporate the restaurant's inspection history as a feature. A restaurant that has been flagged before is more likely to be flagged again. This requires adding prior inspection scores to the inference pipeline.
 
-### Case 4: La Palma (Grade B, Score 86.0)
+### Case 4: In & Out Mart (True Positive, Grade B, Score 80.0)
 
-- **Google rating:** 4.3 (249 reviews)
-- **Model P(flagged):** 0.020
-- **Review excerpt:** "I have spent the past month dreading taco nights... anytime they fail me I come to my little corner store..."
-- **Root cause:** High Google rating (4.3) and entirely positive reviews. The inspection score of 86.0 reflects violations invisible to customers. With 0 safety keywords and 0 negative phrases, the model has no textual signal to work with.
-- **Mitigation:** Use inspection date proximity as a feature. If a restaurant's most recent inspection was >12 months ago, flag it for recency bias. However, this requires access to inspection metadata at inference time.
+- **Google rating:** 4.6 | **Safety keywords:** 0 | **P(flagged):** 0.992
+- **Review excerpt:** "Stopped for fuel, pump was not working properly... I only go there for the gas is cheaper."
+- **Root cause (why it was caught):** This is a gas station/convenience store, not a traditional restaurant. The review volume and word patterns differ from typical restaurant reviews. The model learned that this feature profile (short, service-focused reviews about a non-restaurant establishment) correlates with flagged status. This restaurant had 7 B-grade inspections across 2020-2026.
+- **Insight:** The model is partially learning establishment type from review content, not food safety from review sentiment. This is a proxy signal, not a causal one.
 
-### Case 5: Soma Bistro Curry N Cake (Grade C, Score 78.0)
+### Case 5: False Positive Pattern (1,548 safe restaurants flagged)
 
-- **Google rating:** N/A (no Google match)
-- **Model P(flagged):** 0.464
-- **Root cause:** This is one of only 3 grade-C restaurants in the entire dataset, and it has no Google data at all. The model has zero features to work with. The 0.464 flagged probability is the model's default for restaurants with no review data.
-- **Mitigation:** For unmatched restaurants, surface a "no review data available" warning rather than a prediction. Alternatively, broaden the Google matching to include partial name matches or nearby location searches.
+- The 1,548 false positives represent 3.4% of safe restaurants in the test set.
+- **Root cause:** The `class_weight='balanced'` setting inflates the importance of the flagged class by 68x. This is necessary to achieve any recall at all, but it causes the model to over-flag restaurants whose review profiles are statistically unusual (low review count, short reviews, non-restaurant establishments).
+- **Mitigation:** Calibrate the model's probability outputs using Platt scaling or isotonic regression, then choose a threshold that balances precision and recall for the deployment context. A screening tool (surface to a human reviewer) tolerates lower precision than a consumer-facing label.
 
 ### Summary of Root Causes
 
-| Root Cause | Cases | Fundamental? |
+| Root Cause | Cases | Addressable? |
 |------------|-------|-------------|
-| Reviews discuss taste/service, not safety | 3, 4 | Yes |
-| Safety-relevant review language not weighted | 1, 2 | Partially addressable |
-| No Google review data at all | 5 | Addressable via better matching |
+| Reviews discuss taste/service, not safety | 2, 3 | No. Fundamental domain mismatch. |
+| Near-threshold borderline cases | 1 | Yes. Threshold tuning. |
+| Model learns establishment type proxies, not safety | 4 | Partially. Better feature engineering. |
+| class_weight='balanced' over-flags unusual profiles | 5 | Yes. Probability calibration. |
 
-The dominant failure mode (cases 3, 4) is structural: customers write about what they experience (food quality, service speed, atmosphere), while inspectors evaluate what customers cannot see (sanitizer concentration, cold-holding temperatures, pest evidence). This gap is not a modeling failure. It is a data limitation.
+The dominant failure mode remains structural: customers write about what they experience, while inspectors evaluate what customers cannot see. However, with sufficient training data (3,354 flagged samples after the data pipeline fix), the model finds weak but real signal, primarily through review volume and establishment-type proxies rather than safety-specific language.
 
-## 10. Experiment: Impact of Fuzzy Matching Quality on Model Performance
+## 10. Experiment: Impact of Data Pipeline Quality on Model Performance
 
 ### Hypothesis
 
-The initial pipeline's case-sensitive fuzzy matching (`fuzz.token_sort_ratio` without processor) artificially deflated match scores between NC DHHS names (ALL CAPS) and Google names (title case). We hypothesized that fixing this bug would dramatically increase Google data coverage and potentially improve model performance.
+We discovered two bugs in the data pipeline that silently degraded the training data. We hypothesized that fixing them would provide enough training signal for the models to learn.
 
-### Method
+### Bug 1: Case-Sensitive Fuzzy Matching
 
-1. **Before fix:** Match scores computed without case normalization. "BOJANGLES" vs "Bojangles" = 11.1%.
-2. **After fix:** Added `processor=fuzz_utils.default_process` (lowercases + strips non-alphanumeric). Same comparison = 100%.
-3. Recomputed all 17,561 match scores. Rebuilt feature matrix. Retrained all models.
+`fuzz.token_sort_ratio` was called without case normalization. NC DHHS records use ALL-CAPS names; Google uses title case. "BOJANGLES" vs "Bojangles" scored 11.1% instead of 100%. **Fix:** Added `processor=fuzz_utils.default_process`. Usable Google matches jumped from 432 to 14,868 (34x increase).
+
+### Bug 2: BOM-Corrupted Inspection Dates
+
+The DHHS CSV export includes a UTF-8 BOM (byte order mark). The scraper used `resp.text.lstrip("\ufeff")` to strip it, but `requests` decoded the BOM as literal bytes (`ï»¿`), not the unicode codepoint. The column name became `ï»¿"Inspection Date"` instead of `"Inspection Date"`, causing `row.get("Inspection Date")` to return empty for every row.
+
+With all dates null, `drop_duplicates(subset=['state_id', 'inspection_date'])` treated every inspection of the same restaurant as a duplicate and kept only the first one (typically an A-grade inspection). This collapsed 232K inspection rows to 31K and discarded 94% of B/C grade samples.
+
+**Fix:** Changed to `pd.read_csv(io.BytesIO(resp.content), encoding="utf-8-sig")`.
 
 ### Results
 
-| Metric | Before Fix | After Fix |
-|--------|-----------|-----------|
-| Rows with match_score >= 50 | 432 | 14,868 |
-| Rows with Google rating in features | ~400 | 14,564 |
-| Median match score | 20.8 | 74.3 |
-| RF Macro F1 | 0.50 | 0.50 |
-| DistilBERT Macro F1 | 0.33 | 0.50 |
+| Metric | Before Fixes | After Fixes |
+|--------|-------------|-------------|
+| Total inspection rows | 31,760 | **231,160** |
+| Flagged samples (B+C) | 197 | **3,354** |
+| Imbalance ratio | 160:1 | **68:1** |
+| Rows with Google reviews | 14,529 | **111,542** |
+| RF Macro F1 | 0.50 | **0.57** |
+| RF Flagged Recall | 0.00 | **0.28** |
+| RF Flagged F1 | 0.00 | **0.16** |
 
 ### Interpretation
 
-The fix achieved a **34x increase in Google data coverage** (432 to 14,868 matched restaurants). However, model performance did not improve. This tells us that data sparsity was not the bottleneck. Even with 14,529 reviews available, the features derived from those reviews do not separate A from B/C restaurants.
+The first fix (case normalization) increased Google data coverage 34x but did not improve model performance on the 31K-row dataset. The second fix (BOM) was the critical one: it increased flagged training samples from 197 to 3,354, giving the model 17x more minority-class examples to learn from. Together, the fixes moved Random Forest macro F1 from 0.50 (identical to baseline) to 0.57 (statistically significant improvement).
+
+This demonstrates that **data pipeline quality is a prerequisite for model quality.** Two silent bugs, one in string encoding and one in CSV parsing, were sufficient to make a learnable problem appear unlearnable.
 
 ### Recommendation
 
-This experiment validates the negative result: the review-grade disconnect is not caused by insufficient data linkage. The features are genuinely non-discriminative. Future work should explore data sources that are closer to the inspection process (violation history, inspection frequency, complaint records) rather than investing further in review coverage.
+The RF now detects weak but real signal, primarily through review volume proxies rather than safety-specific language. The signal exists but is noisy: 11% precision at 28% recall. DistilBERT retraining on the corrected 231K-row dataset is pending and may improve on the RF's text-feature approximation by learning directly from review semantics.
 
 ## 11. Conclusions
 
-We investigated whether crowdsourced Google reviews can predict NC restaurant food safety inspection grades. Using a three-model pipeline (majority-class baseline, Random Forest with SHAP, and DistilBERT fine-tuned on review text), we found that **no model architecture can reliably distinguish safe (grade A) from flagged (grade B/C) restaurants using review data alone.**
+We investigated whether crowdsourced Google reviews can predict NC restaurant food safety inspection grades. The project produced two main findings:
 
-The core reason is a domain mismatch: customers write about taste, service, and atmosphere. Inspectors evaluate sanitization, temperature control, and pest management. These two information domains have minimal overlap in natural language.
+**1. Data pipeline quality determines model quality.** Two silent bugs (case-sensitive fuzzy matching and BOM-corrupted inspection dates) made a learnable problem appear unlearnable. Fixing them increased flagged training samples from 197 to 3,354 and moved RF macro F1 from 0.50 to 0.57. This underscores the importance of data auditing before drawing conclusions about model capacity.
 
-This negative result is itself a contribution. It demonstrates that consumer review platforms, despite their value for evaluating dining experience, provide no reliable signal about food safety compliance. Public health information and consumer experience are orthogonal, and models that conflate them risk giving false confidence.
+**2. Review text carries weak but real signal about food safety outcomes.** The Random Forest achieves 28% flagged recall with 11% precision, detecting patterns in review volume and text characteristics that correlate with inspection grades. However, the signal is primarily proxy-based (establishment type inferred from review patterns) rather than safety-specific. Customers still write about taste and service, not sanitization. The model learns that restaurants with certain review profiles are more likely to be flagged, not why they are flagged.
+
+These findings have practical implications. A review-based model can serve as a screening tool (surface high-risk candidates for manual review) but not as a definitive safety label. The 11% precision rate means 9 out of 10 flagged restaurants are actually safe, which is acceptable for a first-pass filter but not for a consumer-facing warning.
 
 ## 12. Future Work
 
@@ -285,7 +273,7 @@ The web application we built (nocapchicken.github.io) demonstrates the UX patter
 
 **Data provenance.** NC DHHS inspection records are public government records under NC Public Records Law (G.S. 132-1). Google Places data was accessed via the official API under Google's Terms of Service. No personally identifiable information about restaurant patrons was collected or used.
 
-**Potential harms.** A false-positive prediction (labeling a safe restaurant as flagged) could cause reputational harm to a business. A false-negative prediction (labeling an unsafe restaurant as safe) could lead consumers to eat at establishments with sanitation violations. Our current model produces no false positives and 100% false negatives, which is equivalent to providing no prediction at all, but any improved model must carefully calibrate its threshold to minimize consumer harm.
+**Potential harms.** A false-positive prediction (labeling a safe restaurant as flagged) could cause reputational harm to a business. A false-negative prediction (labeling an unsafe restaurant as safe) could lead consumers to eat at establishments with sanitation violations. Our current model produces 1,548 false positives and 480 false negatives on the test set (11% precision, 28% recall). The low precision means the model should be used as a screening tool, not a definitive label.
 
 **Limitations of inference.** An inspection grade reflects a point-in-time assessment. Conditions can change between inspections. Users should be reminded that model predictions are not substitutes for official health inspection records.
 

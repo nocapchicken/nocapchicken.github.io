@@ -1,4 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
+# External libraries: scikit-learn (BSD-3), SHAP (MIT), rapidfuzz (MIT), googlemaps (Apache-2.0)
 """Trained artifacts load on first request (APP1)."""
 
 from __future__ import annotations

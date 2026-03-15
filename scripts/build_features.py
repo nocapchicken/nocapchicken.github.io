@@ -1,4 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
+# External libraries: scikit-learn (BSD-3), rapidfuzz (MIT)
 """Merges inspection + review data via fuzzy matching into a feature matrix."""
 
 from __future__ import annotations

@@ -16,7 +16,7 @@ All three must be **implemented, evaluated, and findable** in the repo.
 | M3 | Deep learning model | `scripts/model.py` → `train_distilbert()` | ✅ |
 | M4 | All three documented in README with file locations | `README.md` § Models | ✅ |
 | M5 | Rationale for each model written up in report | `report.md` § 7 | ✅ |
-| M6 | Selected final model clearly identified (and justified) | `report.md` § 11 (all models equivalent; negative result) | ✅ |
+| M6 | Selected final model clearly identified (and justified) | `report.md` § 11 (RF best at macro F1 0.57; BERT pending) | ✅ |
 | M7 | Trained model artifacts present or reproducible | `models/` (naive_baseline.pkl, random_forest.pkl, distilbert/) | ✅ |
 
 ---
@@ -33,7 +33,7 @@ The experiment must directly inform or validate a modeling/system decision (EX5 
 - [x] **EX5** — Experiment **directly informs a modeling or system design decision**
 - [x] **EX6** — Actionable recommendations drawn from experiment
 
-> Experiment: case-sensitivity bug fix in fuzzy matching (report.md § 10). Proved data sparsity was not the bottleneck.
+> Experiment: two data pipeline fixes (case-sensitivity + BOM encoding) in report.md § 10. Proved data quality was the bottleneck — flagged samples 197 → 3,354, RF macro F1 0.50 → 0.57.
 
 ---
 

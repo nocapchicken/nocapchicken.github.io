@@ -1,4 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
+# External libraries: scikit-learn (BSD-3), SHAP (MIT), HuggingFace transformers (Apache-2.0)
 """
 Three required modeling approaches:
   1. Naive baseline     — majority class classifier

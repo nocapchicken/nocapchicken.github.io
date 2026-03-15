@@ -1,4 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
+# External libraries: Flask (BSD-3), Flask-CORS (MIT)
 from flask import Flask
 from flask_cors import CORS
 

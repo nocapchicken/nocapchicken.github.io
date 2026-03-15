@@ -1,4 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
+# External libraries: BeautifulSoup4 (MIT), rapidfuzz (MIT), googlemaps (Apache-2.0)
 """
 Data sources:
   1. NC DHHS public inspection records

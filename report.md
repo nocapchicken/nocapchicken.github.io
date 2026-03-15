@@ -69,7 +69,7 @@ The pipeline consists of four stages:
 
 4. **Target encoding.** Grades are binarized: A = 0 (safe), B or C = 1 (flagged). A `LabelEncoder` is persisted to `models/grade_encoder.pkl` for reproducibility.
 
-**Data quality fix.** An early version of the pipeline used `rapidfuzz.fuzz.token_sort_ratio` without case normalization. NC DHHS records use ALL-CAPS names; Google uses title case. This caused character-level matching to fail on casing alone ("BOJANGLES" vs "Bojangles" scored 11.1% instead of 100%). After adding `processor=fuzz_utils.default_process`, usable Google matches increased from 432 to 14,868 (a 34x improvement). This fix is documented as the project's primary experiment (Section 9).
+**Data quality fix.** An early version of the pipeline used `rapidfuzz.fuzz.token_sort_ratio` without case normalization. NC DHHS records use ALL-CAPS names; Google uses title case. This caused character-level matching to fail on casing alone ("BOJANGLES" vs "Bojangles" scored 11.1% instead of 100%). After adding `processor=fuzz_utils.default_process`, usable Google matches increased from 432 to 14,868 (a 34x improvement). This fix is documented as the project's primary experiment (Section 10).
 
 ## 6. Hyperparameter Tuning Strategy
 

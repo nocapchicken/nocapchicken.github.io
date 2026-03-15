@@ -78,7 +78,7 @@ The Random Forest was tuned via 5-fold `GridSearchCV` optimizing `f1_macro`:
 | Hyperparameter | Search Space | Best Value |
 |----------------|-------------|------------|
 | `n_estimators` | [100, 200] | 100 |
-| `max_depth` | [None, 10, 20] | None |
+| `max_depth` | [None, 10, 20] | 20 |
 | `min_samples_split` | [2, 5] | 2 |
 
 `class_weight='balanced'` was applied to counteract the 68:1 imbalance. SMOTE oversampling was tested but produced no improvement over balanced class weights alone, so it was not included in the final model.

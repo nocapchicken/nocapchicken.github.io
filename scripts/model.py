@@ -56,8 +56,8 @@ def load_data(binary: bool = True) -> tuple[pd.DataFrame, pd.Series]:
     """Load feature matrix and target from features.csv.
 
     When binary=True, collapses B+C into a single 'flagged' class (1) vs A (0).
-    This reframing is necessary because only 197 non-A samples exist (194 B, 3 C),
-    making 3-class learning infeasible.
+    This reframing is necessary because non-A samples are rare (3,354 of 231K:
+    3,249 B + 105 C), making 3-class learning infeasible.
     """
     df = pd.read_csv(PROCESSED_DIR / "features.csv")
     feature_cols = [
@@ -98,7 +98,7 @@ def train_naive_baseline(X_train: pd.DataFrame, y_train: pd.Series) -> DummyClas
 def train_random_forest(X_train: pd.DataFrame, y_train: pd.Series) -> RandomForestClassifier:
     """Returns best_estimator_ from 5-fold grid search (f1_macro).
 
-    Uses class_weight='balanced' to counteract the ~160:1 class imbalance
+    Uses class_weight='balanced' to counteract the ~68:1 class imbalance
     (A vs flagged). Without this, RF predicts all-A and learns nothing.
     SMOTE was tested and produced no improvement (same recall, same precision).
     """

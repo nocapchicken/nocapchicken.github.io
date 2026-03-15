@@ -45,7 +45,7 @@ python main.py
 ## Models
 
 Binary classification: **A (safe)** vs **Flagged (B or C inspection grade)**.
-This reframing is necessary because only 197 of 31,760 inspections are non-A (194 B, 3 C).
+231,160 inspections across 31,799 restaurants. 3,354 flagged (3,249 B, 105 C), 68:1 imbalance.
 
 | Model | Location | Description |
 |---|---|---|

@@ -16,7 +16,7 @@ All three must be **implemented, evaluated, and findable** in the repo.
 | M3 | Deep learning model | `scripts/model.py` → `train_distilbert()` | ✅ |
 | M4 | All three documented in README with file locations | `README.md` § Models | ✅ |
 | M5 | Rationale for each model written up in report | `report.md` § 7 | ✅ |
-| M6 | Selected final model clearly identified (and justified) | `report.md` § 12 (all models equivalent; negative result) | ✅ |
+| M6 | Selected final model clearly identified (and justified) | `report.md` § 11 (all models equivalent; negative result) | ✅ |
 | M7 | Trained model artifacts present or reproducible | `models/` (naive_baseline.pkl, random_forest.pkl, distilbert/) | ✅ |
 
 ---
@@ -33,7 +33,7 @@ The experiment must directly inform or validate a modeling/system decision (EX5 
 - [x] **EX5** — Experiment **directly informs a modeling or system design decision**
 - [x] **EX6** — Actionable recommendations drawn from experiment
 
-> Experiment: case-sensitivity bug fix in fuzzy matching (report.md § 11). Proved data sparsity was not the bottleneck.
+> Experiment: case-sensitivity bug fix in fuzzy matching (report.md § 10). Proved data sparsity was not the bottleneck.
 
 ---
 
@@ -63,10 +63,10 @@ Format: NeurIPS/ICML-style paper, white paper, or technical report.
 - [x] **R06** — Hyperparameter Tuning Strategy (GridSearchCV documented) — `report.md` § 6
 - [x] **R07** — Models Evaluated: Naive baseline, Classical ML, Deep learning (with rationale) — `report.md` § 7
 - [x] **R08** — Results: quantitative comparison across all models and metrics — `report.md` § 8
-- [x] **R09** — Results: visualizations and confusion matrices — `report.md` § 9
-- [x] **R10** — Error Analysis: **5 specific mispredictions** identified (restaurant name, true grade, predicted grade) — `report.md` § 10
-- [x] **R11** — Error Analysis: root cause explained for each (data quality? feature gap? class imbalance?) — `report.md` § 10
-- [x] **R12** — Error Analysis: **concrete, specific** mitigation strategies per case — `report.md` § 10
+- [x] **R09** — Results: visualizations and confusion matrices — `report.md` § 8
+- [x] **R10** — Error Analysis: **5 specific mispredictions** identified (restaurant name, true grade, predicted grade) — `report.md` § 9
+- [x] **R11** — Error Analysis: root cause explained for each (data quality? feature gap? class imbalance?) — `report.md` § 9
+- [x] **R12** — Error Analysis: **concrete, specific** mitigation strategies per case — `report.md` § 9
 - [x] **R13** — Experiment Write-Up (plan → results → interpretation → recommendations) — `report.md` § 10
 - [x] **R14** — Conclusions — `report.md` § 11
 - [x] **R15** — Future Work ("what would you do with another semester?") — `report.md` § 12

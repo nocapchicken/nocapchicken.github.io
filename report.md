@@ -31,11 +31,11 @@ The NC DHHS data provides inspection date, establishment name, address, score (0
 
 Prior work on predicting restaurant health outcomes from online data includes:
 
-- **Kang et al. (2013)** used Yelp review text to predict hygiene violations in Seattle restaurants, reporting over 82% accuracy in identifying severe offenders using unigram features. However, later work showed sampling bias inflated those results, and their dataset had a more balanced violation distribution than NC's heavily A-skewed grading system.
+- **Kang et al. (2013)** used Yelp review text to predict hygiene violations in Seattle restaurants, reporting over 82% accuracy in identifying severe offenders using unigram features. Altenburger and Ho (WWW 2019) later showed that extreme imbalanced sampling drove much of the reported accuracy. Regardless, their dataset had a more balanced violation distribution than NC's heavily A-skewed grading system.
 
 - **Sadilek et al. (2018)**, published in npj Digital Medicine, combined anonymized aggregated location history from opted-in users with illness-related search queries to identify potentially unsafe restaurants in Las Vegas. Their approach relied on indirect behavioral signals rather than review text, achieving meaningful recall on serious violations.
 
-- **Nsoesie et al. (2014)** explored using Yelp data to enhance foodborne illness surveillance, finding that review text could detect outbreak clusters but was less reliable for predicting individual establishment risk.
+- **Nsoesie et al. (2014)**, published in *Preventive Medicine*, compared the distribution of implicated food categories in Yelp illness-related reviews against CDC outbreak surveillance reports. They found that Yelp data captured similar food category patterns to official reports, suggesting review platforms could complement (but not replace) traditional surveillance.
 
 Our work differs in several ways: (1) we use NC's letter-grade system rather than binary violation detection, (2) our class imbalance is far more extreme (99.4% A), (3) we compare three model architectures from naive baseline through deep learning, and (4) we explicitly test whether review language carries food safety signal at all, rather than assuming it does.
 

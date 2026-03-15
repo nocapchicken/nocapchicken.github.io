@@ -77,11 +77,17 @@ clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; \
 	find . -name "*.pyc" -delete
 
-# Fine-grained PAT scoped to nocapchicken repo, contents:write, 30-day expiry
-GITHUB_COLAB_PAT_URL := https://github.com/settings/personal-access-tokens/new?name=nocapchicken%20Colab&description=Colab%20token%20for%20nocapchicken.github.io&target_name=nocapchicken&expires_in=30&contents=write
-
+# Fine-grained PAT: owner must be the nocapchicken ORG, not your personal account.
+# Select "nocapchicken" in the Resource Owner dropdown, then pick the repo.
 colab-pat:
-	@url='$(GITHUB_COLAB_PAT_URL)'; \
+	@echo "Opening GitHub fine-grained PAT form..."
+	@echo ""
+	@echo "  1. Set Resource Owner to: nocapchicken (not your personal account)"
+	@echo "  2. Repository access: Only select repositories → nocapchicken.github.io"
+	@echo "  3. Permissions: Contents → Read and write"
+	@echo "  4. Save token in Colab secrets as GITHUB_TOKEN_NOCAPCHICKEN"
+	@echo ""
+	@url='https://github.com/settings/personal-access-tokens/new'; \
 	if command -v open >/dev/null 2>&1; then \
 		open "$$url"; \
 	elif command -v xdg-open >/dev/null 2>&1; then \
@@ -89,4 +95,3 @@ colab-pat:
 	else \
 		printf '%s\n' "$$url"; \
 	fi
-	@echo "Create the token, then save it in Colab secrets as GITHUB_TOKEN_NOCAPCHICKEN."

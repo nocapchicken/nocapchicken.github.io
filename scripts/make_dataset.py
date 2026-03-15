@@ -33,7 +33,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz, utils as fuzz_utils
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
@@ -274,7 +274,8 @@ def collect_google_reviews(
                 "google_review_count": detail_result.get("user_ratings_total"),
                 "google_reviews": reviews_text,
                 "match_score": fuzz.token_sort_ratio(
-                    row["establishment_name"], detail_result.get("name", "")
+                    row["establishment_name"], detail_result.get("name", ""),
+                    processor=fuzz_utils.default_process,
                 ),
             })
         except Exception as exc:

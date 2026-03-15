@@ -77,12 +77,20 @@ clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; \
 	find . -name "*.pyc" -delete
 
-# Fine-grained PAT: owner must be the nocapchicken ORG, not your personal account.
-GITHUB_COLAB_PAT_URL := https://github.com/settings/personal-access-tokens/new?name=nocapchicken%20Colab&description=Colab%20token%20for%20nocapchicken.github.io&target_name=nocapchicken&expires_in=30&contents=write
+# Fine-grained PAT for Colab → GitHub push.
+# GitHub ignores the target_name param, so the user must change Resource Owner manually.
+GITHUB_COLAB_PAT_URL := https://github.com/settings/personal-access-tokens/new?name=nocapchicken%20Colab&description=Colab%20token%20for%20nocapchicken.github.io&expires_in=30&contents=write
 
 colab-pat:
-	@echo "Verify Resource Owner is set to \033[1mnocapchicken\033[0m (not your personal account)."
-	@echo "Save the token in Colab secrets as \033[1mGITHUB_TOKEN_NOCAPCHICKEN\033[0m."
+	@echo ""
+	@echo "  \033[1;33m⚠  IMPORTANT: Change Resource Owner to nocapchicken\033[0m"
+	@echo ""
+	@echo "  GitHub defaults to your personal account. The token will NOT work"
+	@echo "  unless you change the Resource Owner dropdown at the top of the form"
+	@echo "  from your username to \033[1mnocapchicken\033[0m before creating."
+	@echo ""
+	@echo "  Save the token in Colab secrets as \033[1mGITHUB_TOKEN_NOCAPCHICKEN\033[0m."
+	@echo ""
 	@url='$(GITHUB_COLAB_PAT_URL)'; \
 	if command -v open >/dev/null 2>&1; then \
 		open "$$url"; \

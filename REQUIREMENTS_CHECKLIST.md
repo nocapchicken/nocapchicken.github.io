@@ -17,7 +17,7 @@ All three must be **implemented, evaluated, and findable** in the repo.
 | M4 | All three documented in README with file locations | `README.md` § Models | ✅ |
 | M5 | Rationale for each model written up in report | Written report | ⬜ |
 | M6 | Selected final model clearly identified (and justified) | Written report | ⬜ |
-| M7 | Trained model artifacts present or reproducible | `models/` (currently empty — must run `scripts/model.py`) | ⬜ |
+| M7 | Trained model artifacts present or reproducible | `models/` (naive_baseline.pkl, random_forest.pkl, distilbert/) | ✅ |
 
 ---
 
@@ -41,9 +41,9 @@ The experiment must directly inform or validate a modeling/system decision (EX5 
 
 - [x] **APP1** — Flask app exists and runs inference only (no training in app code)
 - [x] **APP2** — Good UX — polished interface, not a bare Streamlit demo
-- [ ] **APP3** — Publicly accessible via internet (deployed URL) — *README says TBD*
+- [x] **APP3** — Publicly accessible via internet (deployed URL)
 - [ ] **APP4** — Live for at least **one week** after submission date
-- [ ] **APP5** — Deployment URL recorded in `README.md` § Live App
+- [x] **APP5** — Deployment URL recorded in `README.md` § Live App
 
 ---
 
@@ -138,7 +138,7 @@ Run through this before final submission:
 - [ ] `python scripts/model.py` trains all three models and writes artifacts to `models/`
 - [ ] `python main.py` launches the Flask app and it is reachable in browser
 - [ ] Live deployment URL is working and accessible without login
-- [ ] README deployment link updated from "TBD" to the actual URL
+- [x] README deployment link updated from "TBD" to the actual URL
 - [ ] Written report submitted in the required format
 - [ ] Pitch deck/slides prepared
 - [ ] Repo is public (or access granted to grader)
@@ -149,13 +149,13 @@ Run through this before final submission:
 
 | Category | Done | Total | % |
 |----------|------|-------|---|
-| Modeling | 4 | 7 | 57% |
+| Modeling | 5 | 7 | 71% |
 | Experimentation | 0 | 5 | 0% |
-| App | 2 | 5 | 40% |
+| App | 4 | 5 | 80% |
 | Written Report | 0 | 17 | 0% |
 | Pitch | 0 | 5 | 0% |
 | Repo / Code Quality | 14 | 16 | 88% |
 | Git Best Practices | 6 | 7 | 86% |
-| **Total** | **26** | **62** | **42%** |
+| **Total** | **29** | **62** | **47%** |
 
-> Last updated: 2026-03-10
+> Last updated: 2026-03-14

@@ -2,7 +2,7 @@
 
 **Do crowdsourced reviews actually reflect food safety?**
 
-This project investigates the relationship between NC restaurant health inspection scores and public review platform data (Yelp + Google Places). We collect, link, and model inspection records against review sentiment to surface restaurants where public perception diverges from ground-truth food safety outcomes.
+This project investigates the relationship between NC restaurant health inspection scores and public review platform data (Google Places). We collect, link, and model inspection records against review sentiment to surface restaurants where public perception diverges from ground-truth food safety outcomes.
 
 ## Project Structure
 
@@ -32,7 +32,7 @@ This project investigates the relationship between NC restaurant health inspecti
 # 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Collect data (NC inspections + Yelp + Google Places)
+# 2. Collect data (NC inspections + Google Places)
 python setup.py
 
 # 3. Train models
@@ -52,15 +52,14 @@ python main.py
 
 ## Live App
 
-Deployed at: _link TBD_
+Deployed at: https://nocapchicken-github-io.onrender.com
 
 ## Data Sources
 
 | Source | Description | License |
 |---|---|---|
 | [NC DHHS Environmental Health](https://public.cdpehs.com/NCENVPBL/ESTABLISHMENT/ShowESTABLISHMENTTablePage.aspx) | Restaurant inspection scores, grades, and violation records for all 100 NC counties. Collected by NC DHHS and published as public record under NC Public Records Law (G.S. § 132-1). Portal software © Custom Data Processing, Inc. | Public government record |
-| [Yelp Business API (RapidAPI)](https://rapidapi.com/oneapi/api/yelp-business-api) | Business ratings, review counts, and review text matched to inspection records via fuzzy name+address linking. | Yelp Terms of Service |
-| [Google Places API](https://developers.google.com/maps/documentation/places/web-service/overview) | Business ratings, review counts, and review text as a second independent platform signal. | Google Terms of Service |
+| [Google Places API](https://developers.google.com/maps/documentation/places/web-service/overview) | Business ratings, review counts, and review text matched to inspection records via fuzzy name+address linking. | Google Terms of Service |
 
 ## Ethics
 

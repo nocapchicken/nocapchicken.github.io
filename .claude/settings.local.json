@@ -1,7 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh aw:*)",
+      "Bash(python3:*)",
+      "Bash(.venv/bin/pip install:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(pip install:*)",
+      "Bash(kill:*)",
+      "Read(//Users/jonasneves/Github/organizations/spatialft.github.io/notebooks/**)",
+      "Bash(make help:*)",
+      "Bash(tar:*)"
     ]
   }
 }

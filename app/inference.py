@@ -63,7 +63,11 @@ def _load_feature_names() -> list[str]:
     path = MODELS_DIR / "rf_feature_names.pkl"
     if not path.exists():
         logger.warning("rf_feature_names.pkl not found — falling back to hardcoded features")
-        return ["google_rating", "google_review_count_log"]
+        return [
+            "google_rating", "google_review_count_log",
+            "review_word_count", "review_avg_word_len",
+            "safety_keyword_count", "negative_phrase_count",
+        ]
     return joblib.load(path)
 
 

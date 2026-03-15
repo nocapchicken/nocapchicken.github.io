@@ -10,7 +10,7 @@ AIPI 540 Deep Learning, Duke University, Spring 2026
 
 North Carolina's Department of Health and Human Services (DHHS) inspects every licensed food establishment and assigns letter grades (A, B, or C) based on sanitation, temperature control, pest management, and food handling. These grades are public record, but consumers rarely check them. Instead, they rely on crowdsourced review platforms like Google to decide where to eat.
 
-This project asks: **does the language and sentiment of public restaurant reviews contain signal that predicts official food safety inspection outcomes?** If so, a predictive model could surface restaurants where high public ratings mask poor inspection records, a gap we call a "reality gap." If not, the negative result itself is important: it means review platforms give consumers no information about food safety, and the two systems (public perception vs regulatory compliance) operate on completely independent axes.
+This project asks: **does the language and sentiment of public restaurant reviews contain signal that predicts official food safety inspection outcomes?** If so, a predictive model could surface restaurants where high public ratings mask poor inspection records, a gap we call a "reality gap." The answer, as we show, is nuanced: structural metadata about reviews (volume, length) carries weak but real predictive signal, while the semantic content of review text does not.
 
 We frame this as a binary classification problem: **A (safe)** vs **Flagged (B or C inspection grade)**, trained on 231,160 NC DHHS inspection records linked to Google Places review data.
 
@@ -269,7 +269,7 @@ A model that reliably predicts food safety from publicly available data would ha
 
 However, our results show that review data alone is insufficient. A commercially viable product would need to combine review analysis with (1) public inspection records, (2) complaint data, and (3) operational signals (e.g., staff turnover, hours of operation changes). The review component would serve as one input among many, not as the sole predictor.
 
-The web application we built (nocapchicken.github.io) demonstrates the UX pattern: search for a restaurant, see its Google rating alongside a model-generated risk assessment with SHAP explanations. The interface is production-ready; the underlying model needs richer data sources to be commercially useful.
+The web application we built (nocapchicken-github-io.onrender.com) demonstrates the UX pattern: search for a restaurant, see its Google rating alongside a model-generated risk assessment with SHAP explanations. The interface is production-ready; the underlying model needs richer data sources to be commercially useful.
 
 ## 14. Ethics Statement
 

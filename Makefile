@@ -89,4 +89,4 @@ colab-pat:
 	else \
 		printf '%s\n' "$$url"; \
 	fi
-	@echo "Create the token, then save it in Colab secrets as GITHUB_TOKEN."
+	@echo "Create the token, then save it in Colab secrets as GITHUB_TOKEN_NOCAPCHICKEN."

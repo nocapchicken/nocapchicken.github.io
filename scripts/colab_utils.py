@@ -51,7 +51,7 @@ def publish_artifacts(
 ) -> bool:
     """Commit and push generated artifacts from Colab back to GitHub.
 
-    Requires a Colab secret named GITHUB_TOKEN with repo write access.
+    Requires a Colab secret named GITHUB_TOKEN_NOCAPCHICKEN with repo write access.
     Returns True when a commit was created and pushed.
     """
     try:
@@ -59,10 +59,10 @@ def publish_artifacts(
     except ImportError as exc:
         raise RuntimeError("publish_artifacts only works from Google Colab.") from exc
 
-    token = userdata.get("GITHUB_TOKEN")
+    token = userdata.get("GITHUB_TOKEN_NOCAPCHICKEN")
     if not token:
         raise RuntimeError(
-            "Missing Colab secret GITHUB_TOKEN. "
+            "Missing Colab secret GITHUB_TOKEN_NOCAPCHICKEN. "
             "Add it in Colab: key icon (left sidebar) → Add secret."
         )
 

@@ -44,11 +44,14 @@ python main.py
 
 ## Models
 
-| Model | Location |
-|---|---|
-| Naive baseline (majority class / mean predictor) | `scripts/model.py` |
-| Classical ML (Random Forest + SHAP explainability) | `scripts/model.py` |
-| Deep learning (DistilBERT fine-tuned on review text) | `scripts/model.py` |
+Binary classification: **A (safe)** vs **Flagged (B or C inspection grade)**.
+This reframing is necessary because only 197 of 31,760 inspections are non-A (194 B, 3 C).
+
+| Model | Location | Description |
+|---|---|---|
+| Naive baseline | `scripts/model.py` | Majority-class predictor (performance floor) |
+| Random Forest + SHAP | `scripts/model.py` | Tabular + text-derived features, class_weight=balanced |
+| DistilBERT | `scripts/model.py` | Fine-tuned on review text for binary sequence classification |
 
 ## Live App
 

@@ -3,7 +3,7 @@ export
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install setup data-inspections data-google features train run run-prod lint test clean venv notebook
+.PHONY: help install setup data-inspections data-google features train run run-prod lint test clean venv notebook colab-pat
 
 help:
 	@echo ""
@@ -25,6 +25,7 @@ help:
 	@echo "  \033[36mlint\033[0m       Run ruff linter"
 	@echo "  \033[36mtest\033[0m       Run pytest"
 	@echo "  \033[36mclean\033[0m      Remove __pycache__ and .pyc files"
+	@echo "  \033[36mcolab-pat\033[0m  Create a GitHub PAT for Colab notebook publishing"
 	@echo ""
 	@echo "\033[2m# data-inspections / data-google  — individual collection steps\033[0m"
 	@echo ""
@@ -75,3 +76,17 @@ test:
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; \
 	find . -name "*.pyc" -delete
+
+# Fine-grained PAT scoped to nocapchicken repo, contents:write, 30-day expiry
+GITHUB_COLAB_PAT_URL := https://github.com/settings/personal-access-tokens/new?name=nocapchicken%20Colab&description=Colab%20token%20for%20nocapchicken.github.io&target_name=nocapchicken&expires_in=30&contents=write
+
+colab-pat:
+	@url='$(GITHUB_COLAB_PAT_URL)'; \
+	if command -v open >/dev/null 2>&1; then \
+		open "$$url"; \
+	elif command -v xdg-open >/dev/null 2>&1; then \
+		xdg-open "$$url"; \
+	else \
+		printf '%s\n' "$$url"; \
+	fi
+	@echo "Create the token, then save it in Colab secrets as GITHUB_TOKEN."

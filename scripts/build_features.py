@@ -117,6 +117,24 @@ def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     if "google_review_count" in df.columns:
         df["google_review_count_log"] = np.log1p(df["google_review_count"].fillna(0))
 
+    # Text-derived features for RF (gives structured models access to review content)
+    if "combined_reviews" in df.columns:
+        reviews = df["combined_reviews"].fillna("")
+        df["review_word_count"] = reviews.str.split().str.len().fillna(0).astype(int)
+        df["review_avg_word_len"] = (
+            reviews.str.replace(r"[^\w\s]", "", regex=True)
+            .str.split()
+            .apply(lambda words: np.mean([len(w) for w in words]) if words else 0)
+        )
+
+        # Safety-adjacent keywords that may correlate with inspection outcomes
+        safety_terms = r"\b(dirty|filthy|sick|roach|bug|rat|mouse|health|violation|gross|smell|mold|expired|undercooked|raw|contaminated)\b"
+        df["safety_keyword_count"] = reviews.str.lower().str.count(safety_terms)
+
+        # Negative sentiment proxy: count of strongly negative phrases
+        negative_terms = r"\b(worst|terrible|horrible|disgusting|awful|never again|food poisoning|threw up|diarrhea)\b"
+        df["negative_phrase_count"] = reviews.str.lower().str.count(negative_terms)
+
     return df
 
 

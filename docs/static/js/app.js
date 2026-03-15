@@ -1,10 +1,8 @@
 // AI-assisted (Claude Code, claude.ai) — https://claude.ai
-/* nocapchicken — app.js (GitHub Pages static build) */
+/* nocapchicken — app.js */
 
 (function () {
   'use strict';
-
-  const API_BASE = 'https://nocapchicken-github-io.onrender.com';
 
   const form            = document.getElementById('searchForm');
   const btnSearch       = form.querySelector('.btn-search');
@@ -27,7 +25,7 @@
       if (name.length < 2) { suggestionList.innerHTML = ''; return; }
       try {
         const params = new URLSearchParams({ name });
-        const res   = await fetch(`${API_BASE}/api/suggest?${params}`);
+        const res   = await fetch(`/api/suggest?${params}`);
         const names = await res.json();
         suggestionList.innerHTML = names.map(n => `<option value="${escHtml(n)}">`).join('');
       } catch (_) {}
@@ -47,7 +45,7 @@
     resultSec.hidden = false;
 
     try {
-      const res = await fetch(`${API_BASE}/api/predict`, {
+      const res = await fetch('/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),

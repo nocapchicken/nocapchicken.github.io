@@ -16,12 +16,10 @@
   --accent:      #1a1916;
   --star:        #c27803;
 
-  --grade-a:     #16a34a;
-  --grade-a-bg:  #f0fdf4;
-  --grade-b:     #d97706;
-  --grade-b-bg:  #fffbeb;
-  --grade-c:     #dc2626;
-  --grade-c-bg:  #fef2f2;
+  --grade-a:         #16a34a;
+  --grade-a-bg:      #f0fdf4;
+  --grade-flagged:   #dc2626;
+  --grade-flagged-bg:#fef2f2;
 
   --radius-sm:   6px;
   --radius-md:   12px;
@@ -373,11 +371,11 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
 .result-section { margin-bottom: 64px; }
 
 .result-error {
-  background: var(--grade-c-bg);
+  background: var(--grade-flagged-bg);
   border: 1px solid #fca5a5;
   border-radius: var(--radius-md);
   padding: 16px 20px;
-  color: var(--grade-c);
+  color: var(--grade-flagged);
   font-size: 15px;
 }
 
@@ -429,9 +427,8 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
   flex-shrink: 0;
 }
 
-.grade-pill.grade-A { background: var(--grade-a-bg); color: var(--grade-a); }
-.grade-pill.grade-B { background: var(--grade-b-bg); color: var(--grade-b); }
-.grade-pill.grade-C { background: var(--grade-c-bg); color: var(--grade-c); }
+.grade-pill.grade-A       { background: var(--grade-a-bg);       color: var(--grade-a); }
+.grade-pill.grade-Flagged { background: var(--grade-flagged-bg); color: var(--grade-flagged); }
 .grade-pill.grade-unknown { background: #f3f4f6; color: #9ca3af; }
 
 .grade-meta { display: flex; flex-direction: column; gap: 4px; }
@@ -575,7 +572,7 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
 }
 
 .shap-bar.positive { background: var(--grade-a); }
-.shap-bar.negative { background: var(--grade-c); }
+.shap-bar.negative { background: var(--grade-flagged); }
 
 .shap-impact {
   font-size: 13px;
@@ -677,12 +674,10 @@ html[data-theme="dark"] {
   --accent:     #f2f2f7;
   --star:       #ffd60a;
 
-  --grade-a:    #30d158;
-  --grade-a-bg: #0d2318;
-  --grade-b:    #ffd60a;
-  --grade-b-bg: #2d2200;
-  --grade-c:    #ff453a;
-  --grade-c-bg: #2d0d0d;
+  --grade-a:         #30d158;
+  --grade-a-bg:      #0d2318;
+  --grade-flagged:   #ff453a;
+  --grade-flagged-bg:#2d0d0d;
 
   --btn-bg:       #636366;
   --focus-ring:   rgba(242, 242, 247, 0.35);

@@ -46,11 +46,18 @@ EXCLUDE_COLS = {
     "google_place_id", "google_name", "match_score",
     # Raw count — only log-transformed version is used
     "google_review_count",
+    # Not available at inference time (app only has Google data, not inspection metadata)
+    "establishment_type_code", "inspection_month", "inspection_year",
 }
 
 
-def load_data() -> tuple[pd.DataFrame, pd.Series]:
-    """Load feature matrix and target from features.csv; exclude non-numeric and identifier columns."""
+def load_data(binary: bool = True) -> tuple[pd.DataFrame, pd.Series]:
+    """Load feature matrix and target from features.csv.
+
+    When binary=True, collapses B+C into a single 'flagged' class (1) vs A (0).
+    This reframing is necessary because only 197 non-A samples exist (194 B, 3 C),
+    making 3-class learning infeasible.
+    """
     df = pd.read_csv(PROCESSED_DIR / "features.csv")
     feature_cols = [
         col for col in df.columns
@@ -58,6 +65,9 @@ def load_data() -> tuple[pd.DataFrame, pd.Series]:
     ]
     X = df[feature_cols].fillna(0)
     y = df[TARGET_COL]
+    if binary:
+        # A=0 stays 0 (safe), B=1 and C=2 both become 1 (flagged)
+        y = (y > 0).astype(int)
     return X, y
 
 
@@ -85,16 +95,20 @@ def train_naive_baseline(X_train: pd.DataFrame, y_train: pd.Series) -> DummyClas
 
 
 def train_random_forest(X_train: pd.DataFrame, y_train: pd.Series) -> RandomForestClassifier:
-    """Returns best_estimator_ from 5-fold grid search (f1_macro)."""
+    """Returns best_estimator_ from 5-fold grid search (f1_macro).
+
+    Uses class_weight='balanced' to counteract the ~160:1 class imbalance
+    (A vs flagged). Without this, RF predicts all-A and learns nothing.
+    SMOTE was tested and produced no improvement (same recall, same precision).
+    """
     param_grid = {
         "n_estimators": [100, 200],
         "max_depth": [None, 10, 20],
         "min_samples_split": [2, 5],
     }
-    # class_weight omitted intentionally: only 3 grade-C samples exist in the
-    # dataset — balanced weighting causes the model to collapse to predicting C
-    # for everything. Document this as a data limitation in the report (R11).
-    rf = RandomForestClassifier(random_state=RANDOM_STATE, n_jobs=-1)
+    rf = RandomForestClassifier(
+        random_state=RANDOM_STATE, n_jobs=-1, class_weight="balanced",
+    )
     search = GridSearchCV(rf, param_grid, cv=5, scoring="f1_macro", n_jobs=-1, verbose=1)
     search.fit(X_train, y_train)
     logger.info("Best RF params: %s", search.best_params_)
@@ -197,12 +211,10 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-    X, y = load_data()
-    # Stratify only when every class has enough samples for n_splits=5 CV folds
-    min_class_count = y.value_counts().min()
-    stratify = y if min_class_count >= 5 else None
+    X, y = load_data(binary=True)
+    logger.info("Binary target distribution: %s", y.value_counts().to_dict())
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=stratify
+        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y,
     )
 
     results = []
@@ -228,17 +240,23 @@ def main() -> None:
         if "combined_reviews" not in features_df.columns:
             logger.warning("No combined_reviews column found — skipping DistilBERT training.")
         else:
-            texts = features_df["combined_reviews"].fillna("").tolist()
-            labels = features_df[TARGET_COL].tolist()
-            # Re-use RANDOM_STATE and TEST_SIZE; apply same stratification logic as RF split
-            # so the DistilBERT test set is the same rows and comparison is valid.
-            min_class_count_bert = pd.Series(labels).value_counts().min()
-            stratify_bert = labels if min_class_count_bert >= 5 else None
+            # Only train on rows with actual review text (empty reviews = no signal)
+            has_text = features_df["combined_reviews"].fillna("").str.len() > 0
+            bert_df = features_df[has_text].copy()
+            logger.info("DistilBERT: training on %d rows with review text (of %d total)",
+                        len(bert_df), len(features_df))
+
+            texts = bert_df["combined_reviews"].tolist()
+            labels = bert_df[TARGET_COL].tolist()
+            # Binary reframing: B+C → 1 (flagged), A → 0 (safe)
+            labels = [1 if lbl > 0 else 0 for lbl in labels]
             texts_train, texts_test, yl_train, yl_test = train_test_split(
                 texts, labels,
-                test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=stratify_bert,
+                test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=labels,
             )
-            trainer = train_distilbert(texts_train, yl_train, texts_test, yl_test)
+            trainer = train_distilbert(
+                texts_train, yl_train, texts_test, yl_test, num_labels=2,
+            )
             trainer.save_model(str(MODELS_DIR / "distilbert"))
             logger.info("DistilBERT saved to models/distilbert/")
 

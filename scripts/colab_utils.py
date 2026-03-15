@@ -84,6 +84,12 @@ def publish_artifacts(
     if is_shallow:
         subprocess.run(["git", "fetch", "--unshallow", "origin", branch], check=True, cwd=repo_path)
 
+    # Stash everything (including generated files from build_features.py etc.)
+    # so we can pull cleanly, then re-apply only the artifacts we want to push.
+    subprocess.run(["git", "stash", "--include-untracked"], cwd=repo_path)
+    subprocess.run(["git", "pull", "--rebase", "origin", branch], check=True, cwd=repo_path)
+    subprocess.run(["git", "stash", "pop"], cwd=repo_path)
+
     subprocess.run(["git", "add", "--", *rel_paths], check=True, cwd=repo_path)
 
     diff = subprocess.run(["git", "diff", "--cached", "--quiet", "--", *rel_paths], cwd=repo_path)

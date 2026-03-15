@@ -79,6 +79,11 @@ def publish_artifacts(
     subprocess.run(["git", "config", "user.name", "Colab Bot"], check=True, cwd=repo_path)
     subprocess.run(["git", "remote", "set-url", "origin", repo_url], check=True, cwd=repo_path)
 
+    # Unshallow if cloned with --depth=1 (shallow clones can't push)
+    is_shallow = (repo_path / ".git" / "shallow").exists()
+    if is_shallow:
+        subprocess.run(["git", "fetch", "--unshallow", "origin", branch], check=True, cwd=repo_path)
+
     subprocess.run(["git", "add", "--", *rel_paths], check=True, cwd=repo_path)
 
     diff = subprocess.run(["git", "diff", "--cached", "--quiet", "--", *rel_paths], cwd=repo_path)

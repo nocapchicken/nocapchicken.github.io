@@ -140,7 +140,7 @@ def train_distilbert(
     y_train: list[int],
     texts_test: list[str],
     y_test: list[int],
-    num_labels: int = 3,
+    num_labels: int = 2,
     epochs: int = 3,
     batch_size: int = 16,
 ):

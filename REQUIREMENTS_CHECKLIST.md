@@ -15,8 +15,8 @@ All three must be **implemented, evaluated, and findable** in the repo.
 | M2 | Classical (non-DL) ML model | `scripts/model.py` → `train_random_forest()` | ✅ |
 | M3 | Deep learning model | `scripts/model.py` → `train_distilbert()` | ✅ |
 | M4 | All three documented in README with file locations | `README.md` § Models | ✅ |
-| M5 | Rationale for each model written up in report | Written report | ⬜ |
-| M6 | Selected final model clearly identified (and justified) | Written report | ⬜ |
+| M5 | Rationale for each model written up in report | `report.md` § 7 | ✅ |
+| M6 | Selected final model clearly identified (and justified) | `report.md` § 12 (all models equivalent; negative result) | ✅ |
 | M7 | Trained model artifacts present or reproducible | `models/` (naive_baseline.pkl, random_forest.pkl, distilbert/) | ✅ |
 
 ---
@@ -26,12 +26,14 @@ All three must be **implemented, evaluated, and findable** in the repo.
 At least **one focused experiment** must be implemented and written up.
 The experiment must directly inform or validate a modeling/system decision (EX5 — grader deducted −5 when this was missing).
 
-- [ ] **EX1** — Experiment is well-motivated: poses a specific question about your system
-- [ ] **EX2** — Experimental plan documented (hypothesis, method, metrics)
-- [ ] **EX3** — Results reported with numbers/visualizations
-- [ ] **EX4** — Interpretation written: what do the results tell you?
-- [ ] **EX5** — Experiment **directly informs a modeling or system design decision**
-- [ ] **EX6** — Actionable recommendations drawn from experiment
+- [x] **EX1** — Experiment is well-motivated: poses a specific question about your system
+- [x] **EX2** — Experimental plan documented (hypothesis, method, metrics)
+- [x] **EX3** — Results reported with numbers/visualizations
+- [x] **EX4** — Interpretation written: what do the results tell you?
+- [x] **EX5** — Experiment **directly informs a modeling or system design decision**
+- [x] **EX6** — Actionable recommendations drawn from experiment
+
+> Experiment: case-sensitivity bug fix in fuzzy matching (report.md § 11). Proved data sparsity was not the bottleneck.
 
 ---
 
@@ -53,32 +55,32 @@ Format: NeurIPS/ICML-style paper, white paper, or technical report.
 
 ### Required Sections
 
-- [ ] **R01** — Problem Statement
-- [ ] **R02** — Data Sources (with provenance and access method)
-- [ ] **R03** — Related Work (review of prior literature)
-- [ ] **R04** — Evaluation Strategy & Metrics (with justification — *"this is critical"*)
-- [ ] **R05** — Modeling Approach → Data Processing Pipeline (with rationale per step)
-- [ ] **R06** — Hyperparameter Tuning Strategy (GridSearchCV documented)
-- [ ] **R07** — Models Evaluated: Naive baseline, Classical ML, Deep learning (with rationale)
-- [ ] **R08** — Results: quantitative comparison across all models and metrics
-- [ ] **R09** — Results: visualizations and confusion matrices
-- [ ] **R10** — Error Analysis: **5 specific mispredictions** identified (restaurant name, true grade, predicted grade)
-- [ ] **R11** — Error Analysis: root cause explained for each (data quality? feature gap? class imbalance?)
-- [ ] **R12** — Error Analysis: **concrete, specific** mitigation strategies per case — *not* generic statements; grader penalized (-5) vague strategies like "collect more data" without specifics
-- [ ] **R13** — Experiment Write-Up (plan → results → interpretation → recommendations)
-- [ ] **R14** — Conclusions
-- [ ] **R15** — Future Work ("what would you do with another semester?") — grader noted this was "a little hidden" in a prior submission; make it a clearly labelled section
-- [ ] **R16** — Commercial Viability Statement
-- [ ] **R17** — Ethics Statement
+- [x] **R01** — Problem Statement — `report.md` § 1
+- [x] **R02** — Data Sources (with provenance and access method) — `report.md` § 2
+- [x] **R03** — Related Work (review of prior literature) — `report.md` § 3
+- [x] **R04** — Evaluation Strategy & Metrics (with justification — *"this is critical"*) — `report.md` § 4
+- [x] **R05** — Modeling Approach → Data Processing Pipeline (with rationale per step) — `report.md` § 5
+- [x] **R06** — Hyperparameter Tuning Strategy (GridSearchCV documented) — `report.md` § 6
+- [x] **R07** — Models Evaluated: Naive baseline, Classical ML, Deep learning (with rationale) — `report.md` § 7
+- [x] **R08** — Results: quantitative comparison across all models and metrics — `report.md` § 8
+- [x] **R09** — Results: visualizations and confusion matrices — `report.md` § 9
+- [x] **R10** — Error Analysis: **5 specific mispredictions** identified (restaurant name, true grade, predicted grade) — `report.md` § 10
+- [x] **R11** — Error Analysis: root cause explained for each (data quality? feature gap? class imbalance?) — `report.md` § 10
+- [x] **R12** — Error Analysis: **concrete, specific** mitigation strategies per case — `report.md` § 10
+- [x] **R13** — Experiment Write-Up (plan → results → interpretation → recommendations) — `report.md` § 10
+- [x] **R14** — Conclusions — `report.md` § 11
+- [x] **R15** — Future Work ("what would you do with another semester?") — `report.md` § 12
+- [x] **R16** — Commercial Viability Statement — `report.md` § 13
+- [x] **R17** — Ethics Statement — `report.md` § 14
 
 ---
 
 ## 5. In-Class Pitch (5 min hard stop) ⚠️
 
-- [ ] **P1** — Problem & Motivation slide(s)
-- [ ] **P2** — Approach Overview slide(s)
+- [x] **P1** — Problem & Motivation slide(s)
+- [x] **P2** — Approach Overview slide(s)
 - [ ] **P3** — Live Demo prepared and rehearsed
-- [ ] **P4** — Results, Insights, or Key Findings slide(s)
+- [x] **P4** — Results, Insights, or Key Findings slide(s)
 - [ ] **P5** — Presentation stays within 5 minutes
 
 ---
@@ -99,7 +101,7 @@ Format: NeurIPS/ICML-style paper, white paper, or technical report.
 - [x] `notebooks/` — directory exists
 - [x] `.gitignore`
 - [x] `Makefile`
-- [ ] **REPO1** — At least one exploration notebook in `notebooks/`
+- [x] **REPO1** — At least one exploration notebook in `notebooks/` — `notebooks/eda.ipynb`
 
 ### Code Quality ⚠️
 
@@ -114,7 +116,7 @@ Format: NeurIPS/ICML-style paper, white paper, or technical report.
 
 ### Git Best Practices ⚠️
 
-- [x] **GIT1** — Feature branches in use (current: `feature/flask-app`)
+- [x] **GIT1** — Feature branches in use (current: `fix/audit-findings`)
 - [x] **GIT2** — PR template in `.github/PULL_REQUEST_TEMPLATE/`
 - [x] **GIT3** — All code merged via PRs (no direct commits to `main`) — enforced by branch protection
 - [x] **GIT4** — Every PR has a meaningful Summary (use the PR template — 1 paragraph minimum) — enforced by `PR Summary` CI check
@@ -125,7 +127,7 @@ Format: NeurIPS/ICML-style paper, white paper, or technical report.
 ### Project Novelty (choose one)
 
 - [ ] **NOV1** — Working on a dataset/problem with no prior modeling approaches, OR
-- [ ] **NOV2** — Clearly explains what is new/novel vs. prior approaches (with citations), and achieves near-SOTA or better explainability
+- [x] **NOV2** — Clearly explains what is new/novel vs. prior approaches (with citations), and achieves near-SOTA or better explainability — `report.md` § 3
 
 ---
 
@@ -139,8 +141,8 @@ Run through this before final submission:
 - [ ] `python main.py` launches the Flask app and it is reachable in browser
 - [ ] Live deployment URL is working and accessible without login
 - [x] README deployment link updated from "TBD" to the actual URL
-- [ ] Written report submitted in the required format
-- [ ] Pitch deck/slides prepared
+- [x] Written report submitted in the required format
+- [x] Pitch deck/slides prepared
 - [ ] Repo is public (or access granted to grader)
 
 ---
@@ -149,13 +151,13 @@ Run through this before final submission:
 
 | Category | Done | Total | % |
 |----------|------|-------|---|
-| Modeling | 5 | 7 | 71% |
-| Experimentation | 0 | 5 | 0% |
+| Modeling | 7 | 7 | 100% |
+| Experimentation | 6 | 6 | 100% |
 | App | 4 | 5 | 80% |
-| Written Report | 0 | 17 | 0% |
-| Pitch | 0 | 5 | 0% |
-| Repo / Code Quality | 14 | 16 | 88% |
+| Written Report | 17 | 17 | 100% |
+| Pitch | 3 | 5 | 60% |
+| Repo / Code Quality | 15 | 16 | 94% |
 | Git Best Practices | 6 | 7 | 86% |
-| **Total** | **29** | **62** | **47%** |
+| **Total** | **58** | **63** | **92%** |
 
-> Last updated: 2026-03-14
+> Last updated: 2026-03-15

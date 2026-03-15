@@ -31,9 +31,9 @@ The NC DHHS data provides inspection date, establishment name, address, score (0
 
 Prior work on predicting restaurant health outcomes from online data includes:
 
-- **Kang et al. (2013)** used Yelp review text to predict hygiene violations in Seattle restaurants, finding that unigram features like "dirty" and "sick" had moderate predictive power. However, their dataset had a more balanced violation distribution than NC's heavily A-skewed grading system.
+- **Kang et al. (2013)** used Yelp review text to predict hygiene violations in Seattle restaurants, reporting over 82% accuracy in identifying severe offenders using unigram features. However, later work showed sampling bias inflated those results, and their dataset had a more balanced violation distribution than NC's heavily A-skewed grading system.
 
-- **Sadilek et al. (2018)** at Google Research used adaptive web search queries and machine learning to identify potentially unsafe restaurants in Las Vegas, achieving meaningful recall on serious violations. Their approach relied on indirect signals (search queries mentioning illness after visiting a restaurant) rather than review text.
+- **Sadilek et al. (2018)**, published in npj Digital Medicine, combined anonymized aggregated location history from opted-in users with illness-related search queries to identify potentially unsafe restaurants in Las Vegas. Their approach relied on indirect behavioral signals rather than review text, achieving meaningful recall on serious violations.
 
 - **Nsoesie et al. (2014)** explored using Yelp data to enhance foodborne illness surveillance, finding that review text could detect outbreak clusters but was less reliable for predicting individual establishment risk.
 
@@ -140,7 +140,7 @@ All SHAP values are near zero, confirming that no individual feature carries dis
 
 Validation loss is flat from epoch 1, indicating the model learned to predict the majority class immediately and found no additional signal in subsequent epochs.
 
-## 9. Confusion Matrices
+### Confusion Matrices
 
 **Naive Baseline (test set, n=6,352):**
 
@@ -165,7 +165,7 @@ Validation loss is flat from epoch 1, indicating the model learned to predict th
 
 All three confusion matrices are nearly identical to the trivial all-A prediction.
 
-## 10. Error Analysis
+## 9. Error Analysis
 
 We examine 5 specific false negatives: restaurants with grade B or C that the model predicted as safe. All 39 flagged restaurants in the test set were misclassified.
 
@@ -221,7 +221,7 @@ We examine 5 specific false negatives: restaurants with grade B or C that the mo
 
 The dominant failure mode (cases 3, 4) is structural: customers write about what they experience (food quality, service speed, atmosphere), while inspectors evaluate what customers cannot see (sanitizer concentration, cold-holding temperatures, pest evidence). This gap is not a modeling failure. It is a data limitation.
 
-## 11. Experiment: Impact of Fuzzy Matching Quality on Model Performance
+## 10. Experiment: Impact of Fuzzy Matching Quality on Model Performance
 
 ### Hypothesis
 
@@ -251,7 +251,7 @@ The fix achieved a **34x increase in Google data coverage** (432 to 14,868 match
 
 This experiment validates the negative result: the review-grade disconnect is not caused by insufficient data linkage. The features are genuinely non-discriminative. Future work should explore data sources that are closer to the inspection process (violation history, inspection frequency, complaint records) rather than investing further in review coverage.
 
-## 12. Conclusions
+## 11. Conclusions
 
 We investigated whether crowdsourced Google reviews can predict NC restaurant food safety inspection grades. Using a three-model pipeline (majority-class baseline, Random Forest with SHAP, and DistilBERT fine-tuned on review text), we found that **no model architecture can reliably distinguish safe (grade A) from flagged (grade B/C) restaurants using review data alone.**
 
@@ -259,7 +259,7 @@ The core reason is a domain mismatch: customers write about taste, service, and 
 
 This negative result is itself a contribution. It demonstrates that consumer review platforms, despite their value for evaluating dining experience, provide no reliable signal about food safety compliance. Public health information and consumer experience are orthogonal, and models that conflate them risk giving false confidence.
 
-## 13. Future Work
+## 12. Future Work
 
 Given another semester, we would pursue three directions:
 
@@ -273,7 +273,7 @@ Given another semester, we would pursue three directions:
 
 5. **Review-level (not restaurant-level) classification.** Rather than predicting grades from aggregated reviews, classify individual review sentences as safety-relevant or not, then use the proportion of safety-relevant sentences as a feature.
 
-## 14. Commercial Viability
+## 13. Commercial Viability
 
 A model that reliably predicts food safety from publicly available data would have clear commercial value: integration into restaurant discovery platforms, insurance underwriting for food service businesses, and public health surveillance tools.
 
@@ -281,13 +281,13 @@ However, our results show that review data alone is insufficient. A commercially
 
 The web application we built (nocapchicken.github.io) demonstrates the UX pattern: search for a restaurant, see its Google rating alongside a model-generated risk assessment with SHAP explanations. The interface is production-ready; the underlying model needs richer data sources to be commercially useful.
 
-## 15. Ethics Statement
+## 14. Ethics Statement
 
 **Data provenance.** NC DHHS inspection records are public government records under NC Public Records Law (G.S. 132-1). Google Places data was accessed via the official API under Google's Terms of Service. No personally identifiable information about restaurant patrons was collected or used.
 
 **Potential harms.** A false-positive prediction (labeling a safe restaurant as flagged) could cause reputational harm to a business. A false-negative prediction (labeling an unsafe restaurant as safe) could lead consumers to eat at establishments with sanitation violations. Our current model produces no false positives and 100% false negatives, which is equivalent to providing no prediction at all, but any improved model must carefully calibrate its threshold to minimize consumer harm.
 
-**Limitations of inference.** An NPI assignment or inspection grade reflects a point-in-time assessment. Conditions can change between inspections. Users should be reminded that model predictions are not substitutes for official health inspection records.
+**Limitations of inference.** An inspection grade reflects a point-in-time assessment. Conditions can change between inspections. Users should be reminded that model predictions are not substitutes for official health inspection records.
 
 **Bias considerations.** The fuzzy name matching pipeline may systematically fail to link restaurants with non-English names, leading to lower Google data coverage for certain cuisines. We did not audit for this bias but acknowledge it as a limitation.
 

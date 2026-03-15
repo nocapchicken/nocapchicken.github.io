@@ -64,6 +64,7 @@ def build_features() -> pd.DataFrame:
 
 
 def _load_inspections() -> pd.DataFrame:
+    """Read merged inspections, coerce score to numeric, normalize grade."""
     df = pd.read_csv(RAW_DIR / "inspections.csv")
     df["score"] = pd.to_numeric(df["score"], errors="coerce")
     df = df.dropna(subset=["score"])
@@ -96,6 +97,7 @@ def _merge(inspections: pd.DataFrame, google: pd.DataFrame) -> pd.DataFrame:
 
 
 def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add numeric, temporal, and text-derived features from inspection + review data."""
     # Establishment type as a numeric code (e.g. "1 - Restaurant" → 1)
     df["establishment_type_code"] = (
         df["establishment_type"].str.split(" - ").str[0].astype(float, errors="ignore")

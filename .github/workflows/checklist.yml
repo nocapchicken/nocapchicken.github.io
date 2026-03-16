@@ -2,6 +2,7 @@
 name: Regenerate Live Checklist
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:

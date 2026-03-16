@@ -13,6 +13,7 @@ OUT = ROOT / "docs" / "checklist" / "index.html"
 
 
 def parse_checklist(text: str) -> list[dict]:
+    """Parse REQUIREMENTS_CHECKLIST.md into a list of section dicts with item completion state."""
     sections: list[dict] = []
     current: dict | None = None
 
@@ -62,6 +63,7 @@ def _progress(items: list[dict]) -> tuple[int, int]:
 
 
 def render_html(sections: list[dict], generated_at: str) -> str:
+    """Render parsed checklist sections into a self-contained HTML string."""
     total_done = sum(i["done"] for s in sections for i in s["items"])
     total_all = sum(len(s["items"]) for s in sections)
     total_pct = round(100 * total_done / total_all) if total_all else 0
@@ -192,6 +194,7 @@ def render_html(sections: list[dict], generated_at: str) -> str:
 
 
 def main() -> None:
+    """Read REQUIREMENTS_CHECKLIST.md and write the rendered HTML to docs/checklist/index.html."""
     text = SOURCE.read_text()
     sections = parse_checklist(text)
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")

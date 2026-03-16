@@ -152,6 +152,38 @@ html[data-theme="dark"] .btn-theme .icon-moon { display: none; }
   line-height: 1.6;
 }
 
+/* ── Stats bar ───────────────────────────────────────────── */
+
+.stats-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 36px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  min-width: 90px;
+}
+
+.stat-num {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 /* ── Search form ─────────────────────────────────────────── */
 
 .search-section {

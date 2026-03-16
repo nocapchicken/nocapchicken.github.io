@@ -77,6 +77,19 @@
     document.getElementById('confidenceValue').textContent =
       d.confidence > 0 ? `${Math.round(d.confidence * 100)}%` : '—';
 
+    // Actual grade (from DHHS records)
+    const actualWrap = document.getElementById('actualGradeWrap');
+    const actualPill = document.getElementById('actualGradePill');
+    if (d.actual_grade) {
+      const actualLabel = d.actual_grade === 'A' ? 'A' : d.actual_grade;
+      const actualClass = d.actual_grade === 'A' ? 'grade-A' : 'grade-Flagged';
+      actualPill.textContent = actualLabel;
+      actualPill.className = `grade-pill ${actualClass}`;
+      actualWrap.hidden = false;
+    } else {
+      actualWrap.hidden = true;
+    }
+
     // Divergence warning
     const divAlert = document.getElementById('divergenceAlert');
     divAlert.hidden = !d.divergence_warning;
@@ -178,6 +191,7 @@
     resultError.hidden    = true;
     resultSkeleton.hidden = true;
     document.getElementById('divergenceAlert').hidden = true;
+    document.getElementById('actualGradeWrap').hidden = true;
   }
 
   function setLoading(on) {

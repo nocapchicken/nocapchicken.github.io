@@ -431,6 +431,19 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
 .grade-pill.grade-Flagged { background: var(--grade-flagged-bg); color: var(--grade-flagged); }
 .grade-pill.grade-unknown { background: #f3f4f6; color: #9ca3af; }
 
+/* Actual grade pill: visually subordinate to predicted */
+.grade-pill-wrap--actual .grade-pill {
+  width: 52px;
+  height: 52px;
+  font-size: 22px;
+}
+
+.actual-score {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
 .grade-meta { display: flex; flex-direction: column; gap: 4px; }
 
 .grade-name {

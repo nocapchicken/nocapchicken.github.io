@@ -136,9 +136,10 @@
                 <span class="grade-pill-label">Predicted</span>
                 <div class="grade-pill" id="gradePill"></div>
               </div>
-              <div class="grade-pill-wrap" id="actualGradeWrap" hidden>
+              <div class="grade-pill-wrap grade-pill-wrap--actual" id="actualGradeWrap" hidden>
                 <span class="grade-pill-label">Actual (DHHS)</span>
                 <div class="grade-pill" id="actualGradePill"></div>
+                <span class="actual-score" id="actualScore"></span>
               </div>
               <div class="grade-meta">
                 <span class="grade-name" id="gradeName"></span>
@@ -147,7 +148,7 @@
             </div>
             <div class="grade-confidence">
               <span class="data-badge data-badge--predicted">Random Forest</span>
-              <span class="confidence-label">Tree vote share</span>
+              <span class="confidence-label">Confidence</span>
               <span class="confidence-value" id="confidenceValue"></span>
             </div>
           </div>

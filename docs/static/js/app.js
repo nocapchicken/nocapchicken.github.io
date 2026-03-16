@@ -80,11 +80,12 @@
     // Actual grade (from DHHS records)
     const actualWrap = document.getElementById('actualGradeWrap');
     const actualPill = document.getElementById('actualGradePill');
+    const actualScoreEl = document.getElementById('actualScore');
     if (d.actual_grade) {
-      const actualLabel = d.actual_grade === 'A' ? 'A' : d.actual_grade;
+      actualPill.textContent = d.actual_grade;
       const actualClass = d.actual_grade === 'A' ? 'grade-A' : 'grade-Flagged';
-      actualPill.textContent = actualLabel;
       actualPill.className = `grade-pill ${actualClass}`;
+      actualScoreEl.textContent = d.actual_score ? `${d.actual_score} / 100` : '';
       actualWrap.hidden = false;
     } else {
       actualWrap.hidden = true;

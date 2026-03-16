@@ -80,14 +80,117 @@ def _load_explainer():
     return shap.TreeExplainer(model)
 
 
-def _fetch_google(name: str) -> dict:
-    """Returns rating, review count, location, and up to 5 review texts."""
+@lru_cache(maxsize=1)
+def _load_local_reviews() -> dict[str, dict]:
+    """Load google_reviews.csv into a lookup keyed by lowercase google_name.
+
+    Each value has: rating, review_count, reviews (list[str]), establishment_name.
+    """
+    import csv
+
+    path = ROOT / "data" / "raw" / "google_reviews.csv"
+    if not path.exists():
+        logger.warning("Local reviews file not found at %s", path)
+        return {}
+
+    lookup: dict[str, dict] = {}
+    with open(path, encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            google_name = (row.get("google_name") or "").strip()
+            if not google_name:
+                continue
+            key = google_name.lower()
+            # Keep the entry with the highest review count per name
+            review_count = float(row.get("google_review_count") or 0)
+            if key in lookup and lookup[key]["review_count"] >= review_count:
+                continue
+            raw_reviews = row.get("google_reviews", "")
+            reviews = [r.strip() for r in raw_reviews.split("|||") if r.strip()]
+            rating_str = row.get("google_rating", "")
+            try:
+                rating = float(rating_str) if rating_str else None
+            except ValueError:
+                continue  # corrupted row (column shift)
+            lookup[key] = {
+                "rating": rating,
+                "review_count": int(review_count),
+                "reviews": reviews,
+                "establishment_name": row.get("establishment_name", ""),
+                "google_name": google_name,
+                "state_id": (row.get("state_id") or "").strip(),
+            }
+    logger.info("Loaded %d local review entries", len(lookup))
+    return lookup
+
+
+@lru_cache(maxsize=1)
+def _load_local_locations() -> dict[str, str]:
+    """Build state_id -> 'City, NC' lookup from inspection files."""
+    import csv
+    import glob
+
+    locations: dict[str, str] = {}
+    for path in sorted(glob.glob(str(ROOT / "data" / "raw" / "inspections_*.csv"))):
+        with open(path, encoding="utf-8") as fh:
+            reader = csv.DictReader(fh)
+            for row in reader:
+                sid = row.get("state_id", "").strip()
+                if sid and sid not in locations:
+                    city = (row.get("city") or "").strip().title()
+                    if city:
+                        locations[sid] = f"{city}, NC"
+    logger.info("Loaded %d location entries from inspection files", len(locations))
+    return locations
+
+
+def _fetch_local(name: str) -> dict:
+    """Look up restaurant from local CSV data using fuzzy matching."""
+    lookup = _load_local_reviews()
+    if not lookup:
+        return {}
+
+    # Try exact match first
+    key = name.lower().strip()
+    if key in lookup:
+        entry = lookup[key]
+    else:
+        # Fuzzy match against all google_name keys
+        best_key, best_score = None, 0
+        for candidate_key in lookup:
+            score = fuzz.token_sort_ratio(
+                name, candidate_key, processor=fuzz_utils.default_process,
+            )
+            if score > best_score:
+                best_score = score
+                best_key = candidate_key
+        if best_score < 65 or best_key is None:
+            return {}
+        entry = lookup[best_key]
+
+    # Resolve location via state_id stored in the lookup
+    location = ""
+    sid = entry.get("state_id", "")
+    if sid:
+        locations = _load_local_locations()
+        location = locations.get(sid, "")
+
+    return {
+        "rating": entry["rating"],
+        "review_count": entry["review_count"],
+        "reviews": entry["reviews"],
+        "location": location,
+    }
+
+
+def _fetch_google_api(name: str) -> dict:
+    """Live Google Places API fallback for restaurants not in local data."""
     api_key = os.getenv("GOOGLE_PLACES_API_KEY", "")
     if not api_key:
         return {}
 
     try:
-        import googlemaps  # deferred: optional heavy dependency, avoids startup cost
+        import googlemaps
         gmaps = googlemaps.Client(key=api_key)
 
         query = f"{name} restaurant NC"
@@ -110,7 +213,6 @@ def _fetch_google(name: str) -> dict:
         place = details.get("result", {})
         reviews = [rev["text"] for rev in place.get("reviews", [])]
 
-        # Trim address to city, state (e.g. "Raleigh, NC")
         raw_address = place.get("formatted_address", "")
         parts = [p.strip() for p in raw_address.split(",")]
         location = ", ".join(parts[1:3]).strip() if len(parts) >= 3 else raw_address
@@ -122,8 +224,16 @@ def _fetch_google(name: str) -> dict:
             "location": location,
         }
     except Exception as exc:
-        logger.warning("Google lookup failed: %s", exc)
+        logger.warning("Google API lookup failed: %s", exc)
         return {}
+
+
+def _fetch_google(name: str) -> dict:
+    """Look up restaurant data: local CSV first, live API as fallback."""
+    result = _fetch_local(name)
+    if result and result.get("rating") is not None:
+        return result
+    return _fetch_google_api(name)
 
 
 @dataclass
@@ -212,21 +322,27 @@ def _compute_shap(X: np.ndarray, col_names: list[str], pred_class: int) -> list[
 
 
 def suggest_restaurants(name: str) -> list[str]:
-    """Return up to 5 restaurant name suggestions from Google Places."""
-    api_key = os.getenv("GOOGLE_PLACES_API_KEY", "")
-    if not api_key or len(name) < 2:
+    """Return up to 5 restaurant name suggestions from local data."""
+    if len(name) < 2:
         return []
-    try:
-        import googlemaps  # deferred: optional heavy dependency, avoids startup cost
-        gmaps = googlemaps.Client(key=api_key)
-        results = gmaps.places_autocomplete(
-            name, types=["establishment"], location=None,
-            components={"country": "us"},
-        )
-        return [r["description"] for r in results[:5] if r.get("description")]
-    except Exception as exc:
-        logger.warning("Suggest lookup failed: %s", exc)
-        return []
+
+    lookup = _load_local_reviews()
+    query = name.lower()
+    scored = []
+    for key, entry in lookup.items():
+        if query in key:
+            # Substring matches rank higher
+            scored.append((100, key))
+        else:
+            score = fuzz.token_sort_ratio(
+                name, key, processor=fuzz_utils.default_process,
+            )
+            if score >= 50:
+                scored.append((score, key))
+
+    scored.sort(key=lambda item: item[0], reverse=True)
+    # Return the google_name in original casing (title-cased from the key)
+    return [lookup[key]["google_name"] for _, key in scored[:5]]
 
 
 def _unavailable(restaurant_name: str, error: str) -> PredictionResult:

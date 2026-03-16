@@ -465,6 +465,10 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
 /* Divergence alert */
 
 .divergence-alert {
+  display: none;
+}
+
+.divergence-alert:not([hidden]) {
   display: flex;
   align-items: flex-start;
   gap: 14px;

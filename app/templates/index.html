@@ -70,10 +70,10 @@
         </form>
         <div class="examples-row" aria-label="Try an example">
           <span class="examples-label">Try:</span>
-          <button class="example-chip" type="button" data-name="Angus Barn">Angus Barn</button>
-          <button class="example-chip" type="button" data-name="Cracker Barrel Old Country Store">Cracker Barrel</button>
-          <button class="example-chip" type="button" data-name="Bad Daddy's Burger Bar">Bad Daddy's</button>
-          <button class="example-chip" type="button" data-name="Bulla Gastrobar Charlotte">Bulla Gastrobar</button>
+          <button class="example-chip" type="button" data-name="Elmo's Diner">Elmo's Diner</button>
+          <button class="example-chip" type="button" data-name="Bullock's Bar-B-Cue">Bullock's BBQ</button>
+          <button class="example-chip" type="button" data-name="Cosmic Cantina">Cosmic Cantina</button>
+          <button class="example-chip" type="button" data-name="Guglhupf Restaurant">Guglhupf</button>
         </div>
       </section>
 
@@ -136,6 +136,11 @@
                 <span class="grade-pill-label">Predicted</span>
                 <div class="grade-pill" id="gradePill"></div>
               </div>
+              <div class="grade-pill-wrap grade-pill-wrap--actual" id="actualGradeWrap" hidden>
+                <span class="grade-pill-label">Actual (DHHS)</span>
+                <div class="grade-pill" id="actualGradePill"></div>
+                <span class="actual-score" id="actualScore"></span>
+              </div>
               <div class="grade-meta">
                 <span class="grade-name" id="gradeName"></span>
                 <span class="grade-location" id="gradeLocation"></span>
@@ -143,7 +148,7 @@
             </div>
             <div class="grade-confidence">
               <span class="data-badge data-badge--predicted">Random Forest</span>
-              <span class="confidence-label">Tree vote share</span>
+              <span class="confidence-label">Confidence</span>
               <span class="confidence-value" id="confidenceValue"></span>
             </div>
           </div>
@@ -188,6 +193,23 @@
             </div>
             <ul class="reviews-list" id="reviewsList"></ul>
           </div>
+
+          <!-- Model context -->
+          <details class="model-details">
+            <summary class="model-summary">About this model</summary>
+            <div class="model-details-body">
+              <p>Three models were trained on 231,160 NC DHHS inspection records linked to Google Places data:</p>
+              <table class="model-table">
+                <thead><tr><th>Model</th><th>Macro F1</th><th>Flagged Recall</th></tr></thead>
+                <tbody>
+                  <tr><td>Naive Baseline</td><td>0.50</td><td>0%</td></tr>
+                  <tr class="model-table-active"><td>Random Forest + SHAP</td><td><strong>0.57</strong></td><td><strong>28%</strong></td></tr>
+                  <tr><td>DistilBERT (unweighted loss)</td><td>0.50</td><td>0%</td></tr>
+                </tbody>
+              </table>
+              <p>Random Forest is used for predictions because it is the only model that outperforms the baseline. DistilBERT was trained with unweighted cross-entropy on a 68:1 imbalanced dataset, causing it to predict all-safe. Class-weighted retraining remains future work.</p>
+            </div>
+          </details>
 
         </div><!-- /result-card -->
       </section><!-- /result-section -->

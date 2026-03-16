@@ -42,6 +42,8 @@ class PredictionResult:
     google_review_count: int | None
     top_shap_features: list[dict]          # [{"feature": str, "impact": float}]
     divergence_warning: bool               # reviews look good but model flags restaurant
+    actual_grade: str | None = None        # latest inspection grade from DHHS records
+    actual_score: float | None = None      # latest inspection score (0-100)
     sample_reviews: list[str] = field(default_factory=list)
     error: str | None = None
 
@@ -144,6 +146,33 @@ def _load_local_locations() -> dict[str, str]:
     return locations
 
 
+@lru_cache(maxsize=1)
+def _load_latest_grades() -> dict[str, dict]:
+    """Build state_id -> {grade, score} for the most recent inspection."""
+    import csv
+    import glob
+
+    grades: dict[str, dict] = {}
+    for path in sorted(glob.glob(str(ROOT / "data" / "raw" / "inspections_*.csv"))):
+        with open(path, encoding="utf-8") as fh:
+            reader = csv.DictReader(fh)
+            for row in reader:
+                sid = row.get("state_id", "").strip()
+                grade = (row.get("grade") or "").strip()
+                date = (row.get("inspection_date") or "").strip()
+                if not sid or not grade or grade.lower() == "nan":
+                    continue
+                prev_date = grades.get(sid, {}).get("date", "")
+                if date >= prev_date:
+                    try:
+                        score = float(row.get("score") or 0)
+                    except ValueError:
+                        score = 0.0
+                    grades[sid] = {"grade": grade, "score": score, "date": date}
+    logger.info("Loaded %d latest grade entries from inspection files", len(grades))
+    return grades
+
+
 def _fetch_local(name: str) -> dict:
     """Look up restaurant from local CSV data using fuzzy matching."""
     lookup = _load_local_reviews()
@@ -168,18 +197,25 @@ def _fetch_local(name: str) -> dict:
             return {}
         entry = lookup[best_key]
 
-    # Resolve location via state_id stored in the lookup
+    # Resolve location and actual grade via state_id
     location = ""
+    actual_grade = None
+    actual_score = None
     sid = entry.get("state_id", "")
     if sid:
         locations = _load_local_locations()
         location = locations.get(sid, "")
+        grade_info = _load_latest_grades().get(sid, {})
+        actual_grade = grade_info.get("grade")
+        actual_score = grade_info.get("score")
 
     return {
         "rating": entry["rating"],
         "review_count": entry["review_count"],
         "reviews": entry["reviews"],
         "location": location,
+        "actual_grade": actual_grade,
+        "actual_score": actual_score,
     }
 
 
@@ -399,5 +435,7 @@ def predict(restaurant_name: str) -> PredictionResult:
         google_review_count=google.get("review_count"),
         top_shap_features=shap_features,
         divergence_warning=divergence_warning,
+        actual_grade=google.get("actual_grade"),
+        actual_score=google.get("actual_score"),
         sample_reviews=google.get("reviews", [])[:3],
     )

@@ -431,6 +431,19 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
 .grade-pill.grade-Flagged { background: var(--grade-flagged-bg); color: var(--grade-flagged); }
 .grade-pill.grade-unknown { background: #f3f4f6; color: #9ca3af; }
 
+/* Actual grade pill: visually subordinate to predicted */
+.grade-pill-wrap--actual .grade-pill {
+  width: 52px;
+  height: 52px;
+  font-size: 22px;
+}
+
+.actual-score {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
 .grade-meta { display: flex; flex-direction: column; gap: 4px; }
 
 .grade-name {
@@ -603,6 +616,67 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
   line-height: 1.6;
   color: var(--text-muted);
   border-left: 3px solid var(--border);
+}
+
+/* Model details (collapsed) */
+
+.model-details {
+  border-top: 1px solid var(--border);
+  padding: 0 32px;
+}
+
+.model-summary {
+  padding: 16px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.model-summary::-webkit-details-marker { display: none; }
+
+.model-summary::before {
+  content: '▸ ';
+  font-size: 11px;
+}
+
+details[open] > .model-summary::before {
+  content: '▾ ';
+}
+
+.model-details-body {
+  padding-bottom: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.model-details-body p { margin-bottom: 12px; }
+
+.model-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.model-table th {
+  text-align: left;
+  font-weight: 600;
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.model-table td {
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.model-table-active td {
+  color: var(--text);
+  font-weight: 500;
 }
 
 /* ── How it works ────────────────────────────────────────── */

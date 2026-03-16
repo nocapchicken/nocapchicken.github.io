@@ -194,6 +194,23 @@
             <ul class="reviews-list" id="reviewsList"></ul>
           </div>
 
+          <!-- Model context -->
+          <details class="model-details">
+            <summary class="model-summary">About this model</summary>
+            <div class="model-details-body">
+              <p>Three models were trained on 231,160 NC DHHS inspection records linked to Google Places data:</p>
+              <table class="model-table">
+                <thead><tr><th>Model</th><th>Macro F1</th><th>Flagged Recall</th></tr></thead>
+                <tbody>
+                  <tr><td>Naive Baseline</td><td>0.50</td><td>0%</td></tr>
+                  <tr class="model-table-active"><td>Random Forest + SHAP</td><td><strong>0.57</strong></td><td><strong>28%</strong></td></tr>
+                  <tr><td>DistilBERT (unweighted loss)</td><td>0.50</td><td>0%</td></tr>
+                </tbody>
+              </table>
+              <p>Random Forest is used for predictions because it is the only model that outperforms the baseline. DistilBERT was trained with unweighted cross-entropy on a 68:1 imbalanced dataset, causing it to predict all-safe. Class-weighted retraining remains future work.</p>
+            </div>
+          </details>
+
         </div><!-- /result-card -->
       </section><!-- /result-section -->
 

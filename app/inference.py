@@ -306,7 +306,11 @@ def _compute_shap(X: np.ndarray, col_names: list[str], pred_class: int) -> list[
     try:
         shap_vals = explainer.shap_values(X)
         if isinstance(shap_vals, list):
+            # Old SHAP API: list of arrays, one per class
             vals = shap_vals[pred_class][0]
+        elif shap_vals.ndim == 3:
+            # New SHAP API: (samples, features, classes)
+            vals = shap_vals[0, :, pred_class]
         else:
             vals = shap_vals[0]
 

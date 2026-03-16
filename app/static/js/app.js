@@ -119,6 +119,8 @@
       return;
     }
 
+    // Bars are scaled relative to the largest impact in this prediction.
+    // The numeric impact value (shown right) is the absolute SHAP contribution.
     const maxAbs = Math.max(...features.map(f => Math.abs(f.impact)), 0.001);
 
     features.forEach(f => {

@@ -8,7 +8,7 @@ All instructions here are mandatory and override default behavior.
 ## Project Context
 
 Academic ML module project: predict NC restaurant food-safety grades from
-crowdsourced review data (Yelp + Google Places). Final deliverables include
+crowdsourced review data (Google Places). Final deliverables include
 a written report, a live deployed Flask app, and an in-class pitch.
 
 ---

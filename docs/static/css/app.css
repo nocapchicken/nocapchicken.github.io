@@ -87,7 +87,7 @@ a:hover { text-decoration: underline; }
 
 .logo-icon { width: 32px; height: 32px; max-width: 32px; max-height: 32px; object-fit: contain; flex-shrink: 0; }
 
-.logo-cap { color: #be123c; }
+.logo-cap { color: #9a3412; }
 
 .logo-text {
   font-size: 18px;
@@ -465,6 +465,10 @@ input[type="text"]::placeholder { color: var(--text-muted); opacity: .6; }
 /* Divergence alert */
 
 .divergence-alert {
+  display: none;
+}
+
+.divergence-alert:not([hidden]) {
   display: flex;
   align-items: flex-start;
   gap: 14px;

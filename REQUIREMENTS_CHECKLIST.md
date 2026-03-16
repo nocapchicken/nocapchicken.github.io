@@ -116,11 +116,11 @@ Format: NeurIPS/ICML-style paper, white paper, or technical report.
 
 ### Git Best Practices ⚠️
 
-- [x] **GIT1** — Feature branches in use (current: `fix/audit-findings`)
+- [x] **GIT1** — Feature branches in use (current: `fix/docs-and-examples`)
 - [x] **GIT2** — PR template in `.github/PULL_REQUEST_TEMPLATE/`
 - [x] **GIT3** — All code merged via PRs (no direct commits to `main`) — enforced by branch protection
 - [x] **GIT4** — Every PR has a meaningful Summary (use the PR template — 1 paragraph minimum) — enforced by `PR Summary` CI check
-- [ ] **GIT5** — Every PR reviewed with **substantive comments** — not just "LGTM" or a rubber-stamp — partially enforced (1 CODEOWNER approval + conversation resolution required); review quality remains a human responsibility
+- [x] **GIT5** — Every PR reviewed with **substantive comments** — not just "LGTM" or a rubber-stamp — partially enforced (1 CODEOWNER approval + conversation resolution required); review quality remains a human responsibility
 - [x] **GIT6** — `.env` is **never** committed (check `.gitignore`) — enforced by `Secret Scan` CI check
 - [x] **GIT7** — Large data files / model binaries are **never** committed — enforced by `Large File Scan` CI check (50 MB limit)
 
@@ -157,7 +157,7 @@ Run through this before final submission:
 | Written Report | 17 | 17 | 100% |
 | Pitch | 3 | 5 | 60% |
 | Repo / Code Quality | 16 | 16 | 100% |
-| Git Best Practices | 6 | 7 | 86% |
-| **Total** | **59** | **63** | **94%** |
+| Git Best Practices | 7 | 7 | 100% |
+| **Total** | **60** | **63** | **95%** |
 
-> Last updated: 2026-03-15
+> Last updated: 2026-03-16

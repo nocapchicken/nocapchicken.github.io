@@ -1,5 +1,9 @@
 # nocapchicken
 
+[![Live App](https://img.shields.io/badge/app-live%20on%20Render-blue)](https://nocapchicken-github-io.onrender.com)
+[![GitHub Pages](https://img.shields.io/badge/docs-GitHub%20Pages-green)](https://nocapchicken.github.io)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-yellow)](https://www.python.org/)
+
 **Do crowdsourced reviews actually reflect food safety?**
 
 This project investigates the relationship between NC restaurant health inspection scores and public review platform data (Google Places). We collect, link, and model inspection records against review sentiment to surface restaurants where public perception diverges from ground-truth food safety outcomes.
@@ -7,23 +11,26 @@ This project investigates the relationship between NC restaurant health inspecti
 ## Project Structure
 
 ```
-├── README.md
-├── requirements.txt        <- Python dependencies
-├── setup.py                <- Data acquisition and environment setup
 ├── main.py                 <- Entry point: run inference / launch app
+├── setup.py                <- Data acquisition and environment setup
+├── requirements.txt        <- Python dependencies (full pipeline)
+├── requirements-app.txt    <- Python dependencies (app only, for Render)
+├── render.yaml             <- Render deployment config
+├── report.md               <- Written report
+├── Makefile                <- Common tasks (setup, train, run)
 ├── scripts/
-│   ├── make_dataset.py     <- Scrape NC inspection records + fetch review data
+│   ├── make_dataset.py     <- Fetch NC inspection records + Google Places data
 │   ├── build_features.py   <- Feature engineering pipeline
 │   └── model.py            <- Train models and generate predictions
-├── models/                 <- Serialized trained models
+├── app/                    <- Flask web app (inference only)
+├── models/                 <- Serialized trained models (not committed)
 ├── data/
 │   ├── raw/                <- Raw inspection + review data (not committed)
 │   ├── processed/          <- Cleaned, merged, feature-engineered data
 │   └── outputs/            <- Predictions, evaluation results, plots
+├── docs/                   <- GitHub Pages static site
 ├── notebooks/              <- Exploratory notebooks (not used for grading)
-└── .github/
-    └── PULL_REQUEST_TEMPLATE/
-        └── pull_request_template.md
+└── extras/                 <- Archived utilities and experiments
 ```
 
 ## Quickstart
@@ -45,7 +52,7 @@ python main.py
 ## Models
 
 Binary classification: **A (safe)** vs **Flagged (B or C inspection grade)**.
-231,160 inspections across 31,799 restaurants. 3,354 flagged (3,249 B, 105 C), 68:1 imbalance.
+231,160 inspections across ~33K restaurants. 3,354 flagged (3,249 B, 105 C), 68:1 imbalance.
 
 | Model | Location | Description |
 |---|---|---|
@@ -53,9 +60,16 @@ Binary classification: **A (safe)** vs **Flagged (B or C inspection grade)**.
 | Random Forest + SHAP | `scripts/model.py` | Tabular + text-derived features, class_weight=balanced |
 | DistilBERT | `scripts/model.py` | Fine-tuned on review text for binary sequence classification |
 
-## Live App
+## Deployment
 
-Deployed at: https://nocapchicken-github-io.onrender.com
+Two services work together:
+
+| Layer | URL | What it serves |
+|---|---|---|
+| **Frontend** | [nocapchicken.github.io](https://nocapchicken.github.io) | Static landing page (GitHub Pages, `docs/`) |
+| **Backend** | [nocapchicken-github-io.onrender.com](https://nocapchicken-github-io.onrender.com) | Flask API: inference, SHAP explanations, Google Places lookup (Render) |
+
+The frontend calls the Render backend for predictions. The backend is inference-only; no training happens at runtime.
 
 ## Data Sources
 

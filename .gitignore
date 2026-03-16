@@ -33,9 +33,6 @@ Thumbs.db
 
 # Claude Code — local settings are personal and should not be shared
 .claude/settings.local.json
-writeup/*.aux
-writeup/*.bbl
-writeup/*.blg
-writeup/*.log
-writeup/*.out
-writeup/*.pdf
+# Writeup — only the compiled PDF is tracked; sources are local-only
+writeup/*
+!writeup/*.pdf

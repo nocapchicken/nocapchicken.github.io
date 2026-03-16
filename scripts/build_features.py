@@ -1,4 +1,5 @@
 # AI-assisted (Claude Code, claude.ai) — https://claude.ai
+# External libraries: scikit-learn (BSD-3), rapidfuzz (MIT)
 """Merges inspection + review data via fuzzy matching into a feature matrix."""
 
 from __future__ import annotations
@@ -10,11 +11,14 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
+from scripts.feature_constants import NEGATIVE_PATTERN, SAFETY_PATTERN
+
 logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).parent.parent
 RAW_DIR = ROOT / "data" / "raw"
 PROCESSED_DIR = ROOT / "data" / "processed"
+MODELS_DIR = ROOT / "models"
 
 # Minimum fuzzy match score (0–100) to accept a name+address link
 MATCH_THRESHOLD = 50
@@ -62,6 +66,7 @@ def build_features() -> pd.DataFrame:
 
 
 def _load_inspections() -> pd.DataFrame:
+    """Read merged inspections, coerce score to numeric, normalize grade."""
     df = pd.read_csv(RAW_DIR / "inspections.csv")
     df["score"] = pd.to_numeric(df["score"], errors="coerce")
     df = df.dropna(subset=["score"])
@@ -72,7 +77,7 @@ def _load_inspections() -> pd.DataFrame:
 def _load_reviews(filename: str) -> pd.DataFrame:
     """Filter to matches above MATCH_THRESHOLD."""
     path = RAW_DIR / filename
-    if not path.exists() or not path.read_text(encoding="utf-8").strip():
+    if not path.exists() or not path.read_text().strip():
         logger.warning("%s not found or empty, skipping", path)
         return pd.DataFrame()
 
@@ -94,6 +99,7 @@ def _merge(inspections: pd.DataFrame, google: pd.DataFrame) -> pd.DataFrame:
 
 
 def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add numeric, temporal, and text-derived features from inspection + review data."""
     # Establishment type as a numeric code (e.g. "1 - Restaurant" → 1)
     df["establishment_type_code"] = (
         df["establishment_type"].str.split(" - ").str[0].astype(float, errors="ignore")
@@ -115,16 +121,34 @@ def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     if "google_review_count" in df.columns:
         df["google_review_count_log"] = np.log1p(df["google_review_count"].fillna(0))
 
+    # Text-derived features for RF (gives structured models access to review content)
+    if "combined_reviews" in df.columns:
+        reviews = df["combined_reviews"].fillna("")
+        df["review_word_count"] = reviews.str.split().str.len().fillna(0).astype(int)
+        df["review_avg_word_len"] = (
+            reviews.str.replace(r"[^\w\s]", "", regex=True)
+            .str.split()
+            .apply(lambda words: np.mean([len(w) for w in words]) if words else 0)
+        )
+
+        df["safety_keyword_count"] = reviews.str.lower().str.count(SAFETY_PATTERN)
+        df["negative_phrase_count"] = reviews.str.lower().str.count(NEGATIVE_PATTERN)
+
     return df
 
 
 def _encode_target(df: pd.DataFrame) -> pd.DataFrame:
-    """Filter to valid grades (A/B/C) and add label-encoded target column."""
+    """Filter to valid grades (A/B/C) and add label-encoded target column.
+
+    Alphabetical order gives A=0, B=1, C=2. The training pipeline binarizes
+    this further (B+C → 1) in model.py load_data(binary=True).
+    """
     valid_grades = ["A", "B", "C"]
     df = df[df["grade"].isin(valid_grades)].copy()
 
     le = LabelEncoder()
     df["grade_encoded"] = le.fit_transform(df["grade"])
+    logger.info("Grade encoding: %s", dict(zip(le.classes_, le.transform(le.classes_))))
 
     return df
 

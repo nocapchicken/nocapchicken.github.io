@@ -111,6 +111,15 @@ Pay special attention to:
 
 ---
 
+## Presentation slides
+
+Slides live in a separate repo: `agora/slides/nocapchicken/` (jonasneves/agora on GitHub).
+The content file is `content.js` (structured data, not raw HTML).
+When asked to update slides or review the pitch, read that file first.
+Slides must satisfy P1–P5 from `REQUIREMENTS_CHECKLIST.md`.
+
+---
+
 ## When asked to help with experiments
 
 Ensure the experiment satisfies EX1–EX6. Specifically, EX5 is the most

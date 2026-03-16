@@ -21,28 +21,11 @@ jobs:
       - name: Generate checklist page
         run: python3 scripts/generate_checklist.py
 
-      - name: Deploy to gh-pages
+      - name: Commit generated checklist
         run: |
-          # Save generated file before switching branches
-          cp docs/checklist/index.html /tmp/checklist.html
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Discard generated file so branch switch succeeds
-          git checkout -- .
-
-          git fetch origin gh-pages || true
-          if git show-ref --quiet refs/remotes/origin/gh-pages; then
-            git checkout gh-pages
-          else
-            git checkout --orphan gh-pages
-            git rm -rf . --quiet
-          fi
-
-          mkdir -p checklist
-          cp /tmp/checklist.html checklist/index.html
-
-          git add checklist/index.html
+          git add docs/checklist/index.html
           git diff --staged --quiet || git commit -m "chore: regenerate live checklist"
-          git push origin gh-pages
+          git push origin main

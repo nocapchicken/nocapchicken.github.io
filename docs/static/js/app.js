@@ -25,7 +25,7 @@
       if (name.length < 2) { suggestionList.innerHTML = ''; return; }
       try {
         const params = new URLSearchParams({ name });
-        const res   = await fetch(`/api/suggest?${params}`);
+        const res   = await fetch(`https://nocapchicken-github-io.onrender.com/api/suggest?${params}`);
         const names = await res.json();
         suggestionList.innerHTML = names.map(n => `<option value="${escHtml(n)}">`).join('');
       } catch (_) {}
@@ -45,7 +45,7 @@
     resultSec.hidden = false;
 
     try {
-      const res = await fetch('/api/predict', {
+      const res = await fetch('https://nocapchicken-github-io.onrender.com/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),

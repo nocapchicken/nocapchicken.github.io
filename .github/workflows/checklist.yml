@@ -22,11 +22,14 @@ jobs:
 
       - name: Deploy to gh-pages
         run: |
-          # Stash generated file before switching branches
+          # Save generated file before switching branches
           cp docs/checklist/index.html /tmp/checklist.html
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Discard generated file so branch switch succeeds
+          git checkout -- .
 
           git fetch origin gh-pages || true
           if git show-ref --quiet refs/remotes/origin/gh-pages; then

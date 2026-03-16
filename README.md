@@ -54,11 +54,13 @@ python main.py
 Binary classification: **A (safe)** vs **Flagged (B or C inspection grade)**.
 231,160 inspections across ~33K restaurants. 3,354 flagged (3,249 B, 105 C), 68:1 imbalance.
 
-| Model | Location | Description |
-|---|---|---|
-| Naive baseline | `scripts/model.py` | Majority-class predictor (performance floor) |
-| Random Forest + SHAP | `scripts/model.py` | Tabular + text-derived features, class_weight=balanced |
-| DistilBERT | `scripts/model.py` | Fine-tuned on review text for binary sequence classification |
+| Model | Macro F1 | Flagged Recall | Description |
+|---|---|---|---|
+| Naive baseline | 0.50 | 0% | Majority-class predictor (performance floor) |
+| **Random Forest + SHAP** | **0.57** | **28%** | Tabular + text-derived features, class_weight=balanced |
+| DistilBERT | 0.50 | 0% | Fine-tuned on review text (unweighted loss on 68:1 data) |
+
+Random Forest is the deployed model. DistilBERT predicted all-safe due to unweighted cross-entropy on extreme imbalance; class-weighted retraining is future work. All models in `scripts/model.py`.
 
 ## Deployment
 
@@ -67,16 +69,22 @@ Two services work together:
 | Layer | URL | What it serves |
 |---|---|---|
 | **Frontend** | [nocapchicken.github.io](https://nocapchicken.github.io) | Static landing page (GitHub Pages, `docs/`) |
-| **Backend** | [nocapchicken-github-io.onrender.com](https://nocapchicken-github-io.onrender.com) | Flask API: inference, SHAP explanations, Google Places lookup (Render) |
+| **Backend** | [nocapchicken-github-io.onrender.com](https://nocapchicken-github-io.onrender.com) | Flask API: RF inference, SHAP explanations, local data lookup (Render) |
 
-The frontend calls the Render backend for predictions. The backend is inference-only; no training happens at runtime.
+The frontend calls the Render backend for predictions. Predictions are served from pre-collected Google Places data (17,561 matched listings). The backend is inference-only; no training happens at runtime.
 
 ## Data Sources
 
 | Source | Description | License |
 |---|---|---|
-| [NC DHHS Environmental Health](https://public.cdpehs.com/NCENVPBL/ESTABLISHMENT/ShowESTABLISHMENTTablePage.aspx) | Restaurant inspection scores, grades, and violation records for all 100 NC counties. Collected by NC DHHS and published as public record under NC Public Records Law (G.S. § 132-1). Portal software © Custom Data Processing, Inc. | Public government record |
-| [Google Places API](https://developers.google.com/maps/documentation/places/web-service/overview) | Business ratings, review counts, and review text matched to inspection records via fuzzy name+address linking. | Google Terms of Service |
+| [NC DHHS Environmental Health](https://public.cdpehs.com/NCENVPBL/ESTABLISHMENT/ShowESTABLISHMENTTablePage.aspx) | 231,160 inspection records (2020-2026) across all 100 NC counties. Scores, grades, violation data. Published under NC Public Records Law (G.S. § 132-1). | Public government record |
+| [Google Places API](https://developers.google.com/maps/documentation/places/web-service/overview) | 17,561 restaurant listings with ratings, review counts, and review text. Matched to inspections via fuzzy name+address linking (48% coverage). | Google Terms of Service |
+
+## Deliverables
+
+- **Written report**: [`report.md`](report.md) (NeurIPS-style technical report)
+- **Live app**: [nocapchicken.github.io](https://nocapchicken.github.io)
+- **In-class pitch**: 5-minute presentation with live demo
 
 ## Ethics
 

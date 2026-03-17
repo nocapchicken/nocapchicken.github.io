@@ -140,6 +140,7 @@
                 <span class="grade-pill-label">Actual (DHHS)</span>
                 <div class="grade-pill" id="actualGradePill"></div>
                 <span class="actual-score" id="actualScore"></span>
+                <span class="actual-date" id="actualDate"></span>
               </div>
               <div class="grade-meta">
                 <span class="grade-name" id="gradeName"></span>
@@ -194,11 +195,13 @@
             <ul class="reviews-list" id="reviewsList"></ul>
           </div>
 
-          <!-- Model context -->
-          <details class="model-details">
-            <summary class="model-summary">About this model</summary>
+          <!-- Traceability -->
+          <details class="model-details" id="traceSection">
+            <summary class="model-summary">Traceability</summary>
             <div class="model-details-body">
-              <p>Three models were trained on 231,160 NC DHHS inspection records linked to Google Places data:</p>
+
+              <!-- Model selection -->
+              <p class="trace-label">Model selection</p>
               <table class="model-table">
                 <thead><tr><th>Model</th><th>Macro F1</th><th>Flagged Recall</th></tr></thead>
                 <tbody>
@@ -207,7 +210,42 @@
                   <tr><td>DistilBERT (unweighted loss)</td><td>0.50</td><td>0%</td></tr>
                 </tbody>
               </table>
-              <p>Random Forest is used for predictions because it is the only model that outperforms the baseline. DistilBERT was trained with unweighted cross-entropy on a 68:1 imbalanced dataset, causing it to predict all-safe. Class-weighted retraining remains future work.</p>
+              <p>Random Forest is the only model that outperforms the baseline on this dataset. DistilBERT was trained with unweighted cross-entropy on a 68:1 imbalanced dataset and predicts all-safe.</p>
+
+              <!-- Last prediction (hidden until a search is run) -->
+              <div id="lastTrace" hidden>
+                <p class="trace-label">Last prediction</p>
+                <table class="model-table">
+                  <thead><tr><th>Feature</th><th>Value</th></tr></thead>
+                  <tbody id="featureTableBody"></tbody>
+                </table>
+                <table class="model-table">
+                  <thead><tr><th>Class</th><th>Probability</th></tr></thead>
+                  <tbody id="probaTableBody"></tbody>
+                </table>
+                <p class="trace-timing" id="traceTiming"></p>
+              </div>
+
+              <!-- Manual run -->
+              <p class="trace-label">Run manually</p>
+              <div class="trace-console">
+                <table class="model-table trace-inputs">
+                  <thead><tr><th>Feature</th><th>Value</th></tr></thead>
+                  <tbody>
+                    <tr><td>Google rating</td><td><input class="trace-input" id="fi0" type="number" step="0.1" min="0" max="5" value="4.0"></td></tr>
+                    <tr><td>log(review count)</td><td><input class="trace-input" id="fi1" type="number" step="0.01" min="0" value="4.61"></td></tr>
+                    <tr><td>Review word count</td><td><input class="trace-input" id="fi2" type="number" step="1" min="0" value="200"></td></tr>
+                    <tr><td>Avg word length</td><td><input class="trace-input" id="fi3" type="number" step="0.1" min="0" value="4.1"></td></tr>
+                    <tr><td>Safety keyword hits</td><td><input class="trace-input" id="fi4" type="number" step="1" min="0" value="0"></td></tr>
+                    <tr><td>Negative phrase hits</td><td><input class="trace-input" id="fi5" type="number" step="1" min="0" value="0"></td></tr>
+                  </tbody>
+                </table>
+                <div class="trace-run-row">
+                  <button class="trace-run-btn" id="traceRunBtn" type="button">▶ Run</button>
+                  <span class="trace-run-output" id="traceRunOutput"></span>
+                </div>
+              </div>
+
             </div>
           </details>
 
@@ -252,6 +290,7 @@
     </div>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
   <script src="static/js/app.js"></script>
 </body>
 </html>

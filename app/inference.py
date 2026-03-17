@@ -163,7 +163,12 @@ def _load_latest_grades() -> dict[str, dict]:
                 if not sid or not grade or grade.lower() == "nan":
                     continue
                 prev_date = grades.get(sid, {}).get("date", "")
-                if date >= prev_date:
+                try:
+                    from datetime import datetime as _dt
+                    is_newer = _dt.strptime(date, "%m/%d/%Y") >= _dt.strptime(prev_date, "%m/%d/%Y")
+                except ValueError:
+                    is_newer = date >= prev_date
+                if is_newer:
                     try:
                         score = float(row.get("score") or 0)
                     except ValueError:

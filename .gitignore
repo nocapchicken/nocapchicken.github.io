@@ -19,6 +19,11 @@ data/outputs/
 
 # Models — serialized sklearn/joblib artifacts are committed (small, required for app)
 # DistilBERT checkpoint is tracked via Git LFS (see .gitattributes)
+# ONNX export artifacts in models/ are regeneratable — only docs/models/ is deployed
+models/*.onnx
+models/*.onnx.gz
+# Pre-computed restaurant data gzip (raw JSON is committed; .gz is a temp artifact)
+docs/static/data/restaurants.json.gz
 
 # Notebooks checkpoints
 notebooks/.ipynb_checkpoints/
